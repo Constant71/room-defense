@@ -88,7 +88,7 @@ export class EditorView extends Container {
       if (selected) {
         handles(
           g,
-          p.waypoints.map((w) => ed.uvToPx(p.surfaceId, w)).filter((x): x is Vec2 => !!x),
+          p.waypoints.map((w) => ed.pointPx(w)).filter((x): x is Vec2 => !!x),
           WHITE,
         );
       }
@@ -140,8 +140,8 @@ export class EditorView extends Container {
         const p = ed.uvToPx(spawn.surfaceId, spawn.at);
         if (p) pts.push(p);
       }
-      for (const uv of d.points) {
-        const p = ed.uvToPx(d.surfaceId, uv);
+      for (const q of d.points) {
+        const p = ed.pointPx(q);
         if (p) pts.push(p);
       }
       const color = d.kind === 'path' ? YELLOW : d.kind === 'buildZone' ? CYAN : MAGENTA;

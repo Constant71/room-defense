@@ -299,7 +299,7 @@ export class MapView {
 
     for (const p of s.room.paths) {
       const pts = pathPoints(s.room, p)
-        .map((q) => uv(p.surfaceId, q))
+        .map((q) => uv(q.surfaceId, q.at))
         .filter((q): q is Vec2 => !!q);
       if (pts.length < 2) continue;
       ctx.beginPath();
@@ -311,7 +311,7 @@ export class MapView {
       if (selected(p.id)) {
         handles(
           ctx,
-          p.waypoints.map((w) => uv(p.surfaceId, w)).filter((q): q is Vec2 => !!q),
+          p.waypoints.map((w) => uv(w.surfaceId, w.at)).filter((q): q is Vec2 => !!q),
         );
       }
     }
@@ -366,7 +366,7 @@ export class MapView {
         if (p) pts.push(p);
       }
       for (const q of d.points) {
-        const p = uv(d.surfaceId, q);
+        const p = uv(q.surfaceId, q.at);
         if (p) pts.push(p);
       }
       if (pts.length) {

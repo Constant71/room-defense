@@ -27,7 +27,8 @@ each milestone is decided.
 - On each surface you place:
   - **spawns** (where enemies enter) and **goals** (what they attack);
   - **enemy paths**: fixed routes from a spawn, through waypoints, to a goal. Enemies follow the
-    drawn path, with no pathfinding. A path stays on one surface;
+    drawn path, with no pathfinding. A path can cross from one surface to another (floor to
+    wall); each of its points belongs to the surface it was drawn on;
   - **build zones**: polygons where towers may be placed;
   - **blocked areas**: polygons to keep clear (furniture, a TV, doors).
 - Everything is stored in surface coordinates, so re-pinning a surface's corners after the
@@ -39,7 +40,7 @@ each milestone is decided.
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "name": "Living room",
   "output": { "width": 1920, "height": 1080 },
   "surfaces": [
@@ -50,10 +51,9 @@ each milestone is decided.
   "paths": [
     {
       "id": "path1",
-      "surfaceId": "surface1",
       "spawnId": "spawn1",
       "goalId": "goal1",
-      "waypoints": []
+      "waypoints": [{ "surfaceId": "surface2", "at": { "x": 0.5, "y": 0.9 } }]
     }
   ],
   "buildZones": [

@@ -10,7 +10,16 @@ import {
   removeFeature,
   type Problem,
 } from '../room/room';
-import type { FeatureKind, Marker, Path, Room, Surface, Vec2, Zone } from '../room/types';
+import type {
+  FeatureKind,
+  Marker,
+  Path,
+  Room,
+  Surface,
+  SurfacePoint,
+  Vec2,
+  Zone,
+} from '../room/types';
 
 export type Tool = 'select' | 'corners' | 'spawn' | 'goal' | 'path' | 'buildZone' | 'blocked';
 
@@ -33,7 +42,7 @@ export const TOOLS: { tool: Tool; key: string; label: string; hint: string }[] =
     tool: 'path',
     key: '5',
     label: 'Path',
-    hint: 'Start on a spawn, click waypoints, finish on a goal. Enter or double-click finishes, Backspace removes the last point, Esc cancels.',
+    hint: 'Start on a spawn, click waypoints, finish on a goal. A path can cross onto other surfaces: just click on them. Enter or double-click finishes, Backspace removes the last point, Esc cancels.',
   },
   {
     tool: 'buildZone',
@@ -62,8 +71,9 @@ export interface Selection {
 
 interface Draft {
   kind: 'path' | 'buildZone' | 'blocked';
+  /** Surface the shape started on. Zones stay on it; paths may move on to others. */
   surfaceId: string;
-  points: Vec2[];
+  points: SurfacePoint[];
   spawnId: string | null;
 }
 
@@ -293,10 +303,25 @@ export class Editor {
     return zone.points.map((p) => this.uvToPx(zone.surfaceId, p)).filter((p): p is Vec2 => !!p);
   }
 
+  /** Output pixels of a surface point (null if its surface is missing or folded). */
+  pointPx(p: SurfacePoint): Vec2 | null {
+    return this.uvToPx(p.surfaceId, p.at);
+  }
+
   pathPx(path: Path): Vec2[] {
     return pathPoints(this.room, path)
-      .map((p) => this.uvToPx(path.surfaceId, p))
+      .map((p) => this.pointPx(p))
       .filter((p): p is Vec2 => !!p);
+  }
+
+  /**
+   * The surface point under a pixel: on the topmost surface there, else on
+   * `fallbackSurfaceId` (clamped to its edge). Used by paths, which may cross surfaces.
+   */
+  private pointAt(px: Vec2, fallbackSurfaceId: string | null): SurfacePoint | null {
+    const s = this.surfaceAt(px) ?? this.surface(fallbackSurfaceId);
+    const uv = s && this.pxToUv(s.id, px);
+    return s && uv ? { surfaceId: s.id, at: clamp01(uv) } : null;
   }
 
   // ---- tools ----------------------------------------------------------------
@@ -381,9 +406,10 @@ export class Editor {
       if (m && uv) m.at = clamp01(uv);
     } else if (d.type === 'vertex') {
       if (d.kind === 'path') {
+        // A waypoint dragged onto another surface moves onto that surface.
         const p = this.room.paths.find((x) => x.id === d.id);
-        const uv = p && this.pxToUv(p.surfaceId, px);
-        if (p && uv) p.waypoints[d.index] = clamp01(uv);
+        const q = p && this.pointAt(px, p.waypoints[d.index]?.surfaceId ?? null);
+        if (p && q) p.waypoints[d.index] = q;
       } else {
         const z = this.zoneList(d.kind).find((x) => x.id === d.id);
         const uv = z && this.pxToUv(z.surfaceId, px);
@@ -471,7 +497,6 @@ export class Editor {
       for (let i = 1; i < pts.length; i++) {
         if (distToSegment(px, pts[i - 1], pts[i]) <= LINE * this.handleScale) {
           this.selection = { kind: 'path', id: p.id };
-          this.activeSurfaceId = p.surfaceId;
           return;
         }
       }
@@ -498,17 +523,17 @@ export class Editor {
 
   /** Vertex drag / insert / remove on the selected path or zone. Returns true if handled. */
   private handleOnSelected(sel: Selection, px: Vec2, button: number, double: boolean): boolean {
-    const isPath = sel.kind === 'path';
-    const path = isPath ? this.room.paths.find((p) => p.id === sel.id) : undefined;
-    const zone = !isPath
-      ? this.zoneList(sel.kind as 'buildZone' | 'blocked').find((z) => z.id === sel.id)
-      : undefined;
-    const surfaceId = path?.surfaceId ?? zone?.surfaceId;
-    const pts = path?.waypoints ?? zone?.points;
-    if (!surfaceId || !pts) return false;
-    const pxPts = pts.map((p) => this.uvToPx(surfaceId, p));
+    const path = sel.kind === 'path' ? this.room.paths.find((p) => p.id === sel.id) : undefined;
+    const zone =
+      sel.kind === 'buildZone' || sel.kind === 'blocked'
+        ? this.zoneList(sel.kind).find((z) => z.id === sel.id)
+        : undefined;
+    if (!path && !zone) return false;
+    const handlesPx: (Vec2 | null)[] = path
+      ? path.waypoints.map((w) => this.pointPx(w))
+      : zone!.points.map((p) => this.uvToPx(zone!.surfaceId, p));
 
-    const index = pxPts.findIndex((p) => p && dist(p, px) <= HANDLE * this.handleScale);
+    const index = handlesPx.findIndex((p) => p && dist(p, px) <= HANDLE * this.handleScale);
     if (index >= 0) {
       if (button === 2) {
         if (zone && zone.points.length <= 3) {
@@ -516,7 +541,8 @@ export class Editor {
           return true;
         }
         this.record();
-        pts.splice(index, 1);
+        if (path) path.waypoints.splice(index, 1);
+        else zone!.points.splice(index, 1);
       } else {
         this.startDrag({
           type: 'vertex',
@@ -530,7 +556,7 @@ export class Editor {
 
     if (double && button === 0) {
       // Insert a point on the nearest edge.
-      const ring = path ? this.pathPx(path) : (pxPts as Vec2[]);
+      const ring = path ? this.pathPx(path) : (handlesPx as Vec2[]);
       const closed = !path;
       let best = -1;
       let bestD = LINE * this.handleScale;
@@ -542,16 +568,23 @@ export class Editor {
           bestD = d;
         }
       }
-      const uv = this.pxToUv(surfaceId, px);
-      if (best >= 0 && uv) {
+      if (best < 0) return false;
+      if (path) {
+        // Ring index 0 may be the spawn, which is not a waypoint.
+        const offset = path.spawnId && this.room.spawns.some((s) => s.id === path.spawnId) ? 1 : 0;
+        const at = Math.max(0, Math.min(path.waypoints.length, best + 1 - offset));
+        const neighbour = pathPoints(this.room, path)[best];
+        const q = this.pointAt(px, neighbour?.surfaceId ?? null);
+        if (!q) return false;
         this.record();
-        // For paths, ring index 0 may be the spawn, which is not a waypoint.
-        const offset =
-          path && path.spawnId && this.room.spawns.some((s) => s.id === path.spawnId) ? 1 : 0;
-        const at = Math.max(0, Math.min(pts.length, best + 1 - offset));
-        pts.splice(at, 0, clamp01(uv));
-        return true;
+        path.waypoints.splice(at, 0, q);
+      } else {
+        const uv = this.pxToUv(zone!.surfaceId, px);
+        if (!uv) return false;
+        this.record();
+        zone!.points.splice(best + 1, 0, clamp01(uv));
       }
+      return true;
     }
     return false;
   }
@@ -577,20 +610,16 @@ export class Editor {
     }
     if (button !== 0) return;
     if (!this.draft) {
-      const s = this.targetSurface(px);
+      // A path may start on any spawn, on any surface.
+      const spawn = kind === 'path' ? this.markerNear('spawn', px) : null;
+      const s = spawn ? this.surface(spawn.surfaceId) : this.targetSurface(px);
       if (!s) {
         this.message = 'Add a surface first (Corners tool), then draw on it.';
         return;
       }
       this.activeSurfaceId = s.id;
-      this.draft = { kind, surfaceId: s.id, points: [], spawnId: null };
-      if (kind === 'path') {
-        const spawn = this.markerNear('spawn', px, s.id);
-        if (spawn) {
-          this.draft.spawnId = spawn.id;
-          return;
-        }
-      }
+      this.draft = { kind, surfaceId: s.id, points: [], spawnId: spawn?.id ?? null };
+      if (spawn) return;
     }
     const draft = this.draft;
     if (double) {
@@ -599,14 +628,23 @@ export class Editor {
       return;
     }
     if (draft.kind === 'path') {
-      const goal = this.markerNear('goal', px, draft.surfaceId);
+      const goal = this.markerNear('goal', px);
       if (goal) {
         this.finishDraft(goal.id);
         return;
       }
+      // Paths follow the cursor onto whichever surface it is over.
+      const last = draft.points[draft.points.length - 1]?.surfaceId ?? draft.surfaceId;
+      const q = this.pointAt(px, last);
+      if (q) {
+        draft.points.push(q);
+        this.activeSurfaceId = q.surfaceId;
+      }
+      return;
     }
+    // Zones stay on the surface they started on.
     const uv = this.pxToUv(draft.surfaceId, px);
-    if (uv) draft.points.push(clamp01(uv));
+    if (uv) draft.points.push({ surfaceId: draft.surfaceId, at: clamp01(uv) });
   }
 
   removeLastDraftPoint(): void {
@@ -628,8 +666,8 @@ export class Editor {
     if (d.kind === 'path') {
       // A goal clicked last links the path; otherwise check the last point.
       if (!goalId && d.points.length) {
-        const last = this.uvToPx(d.surfaceId, d.points[d.points.length - 1]);
-        const goal = last && this.markerNear('goal', last, d.surfaceId);
+        const last = this.pointPx(d.points[d.points.length - 1]);
+        const goal = last && this.markerNear('goal', last);
         if (goal) {
           goalId = goal.id;
           d.points.pop();
@@ -644,7 +682,6 @@ export class Editor {
       this.record();
       const path: Path = {
         id: newId('path', allIds(this.room)),
-        surfaceId: d.surfaceId,
         spawnId: d.spawnId,
         goalId,
         waypoints: d.points,
@@ -665,7 +702,7 @@ export class Editor {
       const zone: Zone = {
         id: newId(d.kind === 'buildZone' ? 'build' : 'blocked', allIds(this.room)),
         surfaceId: d.surfaceId,
-        points: d.points,
+        points: d.points.map((p) => p.at),
       };
       this.zoneList(d.kind).push(zone);
       this.selection = { kind: d.kind, id: zone.id };

@@ -9,7 +9,7 @@
  *   Each surface is corner-pinned onto the output with a perspective warp, so
  *   moving a corner later re-aligns everything drawn on that surface.
  */
-export const ROOM_VERSION = 1;
+export const ROOM_VERSION = 2;
 
 export interface Vec2 {
   x: number;
@@ -23,20 +23,27 @@ export interface Surface {
   corners: [Vec2, Vec2, Vec2, Vec2];
 }
 
-/** A single point on a surface, in surface (u,v) space. */
-export interface Marker {
-  id: string;
+/** A point on a surface, in that surface's (u,v) space. */
+export interface SurfacePoint {
   surfaceId: string;
   at: Vec2;
 }
 
-/** Enemy route: spawn -> waypoints -> goal, all on one surface. */
+/** A named point on a surface (spawns and goals). */
+export interface Marker extends SurfacePoint {
+  id: string;
+}
+
+/**
+ * Enemy route: spawn -> waypoints -> goal. Every point carries its own surface,
+ * so a path can cross from the floor onto a wall; the step between two surfaces
+ * is a straight line across the projected image.
+ */
 export interface Path {
   id: string;
-  surfaceId: string;
   spawnId: string | null;
   goalId: string | null;
-  waypoints: Vec2[];
+  waypoints: SurfacePoint[];
 }
 
 /** Closed polygon on a surface, in surface (u,v) space. */

@@ -5,7 +5,7 @@
  */
 import type { Tool } from '../editor/editor.ts';
 import type { Problem } from '../room/room.ts';
-import type { Room, Vec2 } from '../room/types.ts';
+import type { Room, SurfacePoint, Vec2 } from '../room/types.ts';
 
 export const REMOTE_WS_PATH = '/remote-ws';
 export const REMOTE_INFO_PATH = '/api/remote/info';
@@ -18,7 +18,12 @@ export interface RemoteState {
   activeSurfaceId: string | null;
   selection: { kind: string; id: string } | null;
   selectedCorner: { surfaceId: string; index: number } | null;
-  draft: { kind: string; surfaceId: string; points: Vec2[]; spawnId: string | null } | null;
+  draft: {
+    kind: string;
+    surfaceId: string;
+    points: SurfacePoint[];
+    spawnId: string | null;
+  } | null;
   message: string;
   canUndo: boolean;
   canRedo: boolean;

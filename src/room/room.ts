@@ -5,6 +5,7 @@ import {
   type Path,
   type Room,
   type Surface,
+  type SurfacePoint,
   type Vec2,
   type Zone,
 } from './types.ts';
@@ -60,16 +61,24 @@ export function addSurface(room: Room, name?: string): Surface {
   return surface;
 }
 
-/** Remove a surface and everything drawn on it. */
+/**
+ * Remove a surface and everything drawn on it. Paths that cross it lose the
+ * waypoints (and spawn/goal) on it; a path left with fewer than two points goes.
+ */
 export function removeSurface(room: Room, surfaceId: string): void {
   room.surfaces = room.surfaces.filter((s) => s.id !== surfaceId);
   const keep = <T extends { surfaceId: string }>(list: T[]): T[] =>
     list.filter((f) => f.surfaceId !== surfaceId);
   room.spawns = keep(room.spawns);
   room.goals = keep(room.goals);
-  room.paths = keep(room.paths);
   room.buildZones = keep(room.buildZones);
   room.blocked = keep(room.blocked);
+  for (const p of room.paths) {
+    p.waypoints = keep(p.waypoints);
+    if (p.spawnId && !room.spawns.some((s) => s.id === p.spawnId)) p.spawnId = null;
+    if (p.goalId && !room.goals.some((g) => g.id === p.goalId)) p.goalId = null;
+  }
+  room.paths = room.paths.filter((p) => pathPoints(room, p).length >= 2);
 }
 
 /** Remove any feature by id (removing a spawn or goal unlinks paths that used it). */
@@ -87,10 +96,10 @@ export function removeFeature(room: Room, id: string): void {
 }
 
 /** The full point list of a path: spawn, waypoints, goal (missing ends are skipped). */
-export function pathPoints(room: Room, path: Path): Vec2[] {
+export function pathPoints(room: Room, path: Path): SurfacePoint[] {
   const spawn = room.spawns.find((s) => s.id === path.spawnId);
   const goal = room.goals.find((g) => g.id === path.goalId);
-  return [...(spawn ? [spawn.at] : []), ...path.waypoints, ...(goal ? [goal.at] : [])];
+  return [...(spawn ? [spawn] : []), ...path.waypoints, ...(goal ? [goal] : [])];
 }
 
 export interface Problem {
@@ -102,7 +111,6 @@ export interface Problem {
 /** Checks a room is playable. Errors block play; warnings are worth a look. */
 export function checkRoom(room: Room): Problem[] {
   const problems: Problem[] = [];
-  const surfaceName = (id: string): string => room.surfaces.find((s) => s.id === id)?.name ?? id;
 
   if (room.surfaces.length === 0)
     problems.push({ level: 'error', message: 'Add at least one surface.' });
@@ -123,7 +131,7 @@ export function checkRoom(room: Room): Problem[] {
     problems.push({ level: 'error', message: 'Draw at least one enemy path.' });
 
   room.paths.forEach((p, i) => {
-    const label = `Path ${i + 1} (${surfaceName(p.surfaceId)})`;
+    const label = `Path ${i + 1}`;
     if (!p.spawnId) {
       problems.push({
         level: 'error',
@@ -189,7 +197,11 @@ function list(v: unknown, what: string): unknown[] {
 export function parseRoom(data: unknown): Room {
   const o = data as Record<string, unknown> | null;
   if (!o || typeof o !== 'object') throw new Error('not a room file');
-  if (o.version !== ROOM_VERSION) throw new Error(`unsupported room version ${String(o.version)}`);
+  // Version 1 kept a whole path on one surface; it is upgraded on load.
+  const v1 = o.version === 1;
+  if (!v1 && o.version !== ROOM_VERSION) {
+    throw new Error(`unsupported room version ${String(o.version)}`);
+  }
   const output = o.output as Record<string, unknown> | undefined;
   const marker = (m: unknown): Marker => {
     const r = m as Record<string, unknown>;
@@ -222,12 +234,16 @@ export function parseRoom(data: unknown): Room {
     goals: list(o.goals, 'goals').map(marker),
     paths: list(o.paths, 'paths').map((p) => {
       const r = p as Record<string, unknown>;
+      const pathSurface = v1 ? str(r.surfaceId, 'surfaceId') : '';
       return {
         id: str(r.id, 'id'),
-        surfaceId: str(r.surfaceId, 'surfaceId'),
         spawnId: r.spawnId == null ? null : str(r.spawnId, 'spawnId'),
         goalId: r.goalId == null ? null : str(r.goalId, 'goalId'),
-        waypoints: list(r.waypoints, 'waypoints').map(vec),
+        waypoints: list(r.waypoints, 'waypoints').map((w): SurfacePoint => {
+          if (v1) return { surfaceId: pathSurface, at: vec(w) };
+          const q = w as Record<string, unknown> | null;
+          return { surfaceId: str(q?.surfaceId, 'surfaceId'), at: vec(q?.at) };
+        }),
       };
     }),
     buildZones: list(o.buildZones, 'buildZones').map(zone),
@@ -240,7 +256,7 @@ export function parseRoom(data: unknown): Room {
   for (const f of [
     ...room.spawns,
     ...room.goals,
-    ...room.paths,
+    ...room.paths.flatMap((p) => p.waypoints.map((w) => ({ ...w, id: p.id }))),
     ...room.buildZones,
     ...room.blocked,
   ]) {

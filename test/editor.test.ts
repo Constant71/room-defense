@@ -31,8 +31,8 @@ describe('Editor', () => {
     expect(path.spawnId).toBe(ed.room.spawns[0].id);
     expect(path.goalId).toBe(ed.room.goals[0].id);
     expect(path.waypoints).toHaveLength(1);
-    expect(path.waypoints[0].x).toBeCloseTo(0.5);
-    expect(path.waypoints[0].y).toBeCloseTo(1 / 6);
+    expect(path.waypoints[0].at.x).toBeCloseTo(0.5);
+    expect(path.waypoints[0].at.y).toBeCloseTo(1 / 6);
   });
 
   it('closes a zone with Enter and refuses one with too few points', () => {
@@ -123,5 +123,52 @@ describe('Editor', () => {
     expect(ed.selection?.kind).toBe('path');
     click(ed, 500, 502, 0, true);
     expect(ed.room.paths[0].waypoints).toHaveLength(1);
+  });
+
+  it('draws a path that crosses from one surface onto another', () => {
+    const ed = setup(); // floor: (200,200)-(800,800)
+    ed.addSurface();
+    // wall: a separate area at the top right
+    ed.room.surfaces[1].corners = [
+      { x: 0.85, y: 0.05 },
+      { x: 0.98, y: 0.05 },
+      { x: 0.98, y: 0.3 },
+      { x: 0.85, y: 0.3 },
+    ];
+    const [floor, wall] = ed.room.surfaces;
+    ed.setTool('spawn');
+    click(ed, 300, 700); // on the floor
+    ed.setTool('goal');
+    click(ed, 915, 150); // on the wall
+    expect(ed.room.goals[0].surfaceId).toBe(wall.id);
+
+    ed.setTool('path');
+    click(ed, 300, 700); // start on the floor spawn
+    click(ed, 700, 300); // floor waypoint
+    click(ed, 900, 250); // wall waypoint
+    click(ed, 915, 150); // wall goal: finishes
+    const [path] = ed.room.paths;
+    expect(path.spawnId).toBe(ed.room.spawns[0].id);
+    expect(path.goalId).toBe(ed.room.goals[0].id);
+    expect(path.waypoints.map((w) => w.surfaceId)).toEqual([floor.id, wall.id]);
+    expect(ed.problems().filter((p) => p.level === 'error')).toEqual([]);
+
+    // Drag the floor waypoint onto the wall: it moves to that surface.
+    ed.setTool('select');
+    click(ed, 500, 500); // select the path by its floor segment... (500,500) is on spawn->wp1
+    expect(ed.selection?.kind).toBe('path');
+    ed.pointerDown({ x: 700, y: 300 }, 0, false);
+    ed.pointerMove({ x: 880, y: 100 });
+    ed.pointerUp();
+    expect(path.waypoints[0].surfaceId).toBe(wall.id);
+
+    // Deleting the wall drops its points; the path loses its goal but keeps the rest.
+    ed.setActiveSurface(wall.id);
+    ed.deleteSelection();
+    expect(ed.room.goals).toEqual([]);
+    expect(ed.room.paths[0]?.goalId ?? null).toBeNull();
+    expect(ed.room.paths.flatMap((p) => p.waypoints.map((w) => w.surfaceId))).not.toContain(
+      wall.id,
+    );
   });
 });

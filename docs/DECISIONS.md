@@ -27,8 +27,9 @@ of null (reading 'edgesOut')`). `npm run check` currently means type-check + pro
   It works under `npm run dev` and `npm run preview`.
 - **The file name is fixed at first save** (made from the room name). Renaming a room later
   keeps the same file.
-- **Paths stay on one surface**, and their spawn and goal must be on it too. Crossing from floor
-  to wall can be added later if gameplay needs it.
+- **Paths can cross surfaces** (room file version 2). Each waypoint stores its own surface, so a
+  path can run from the floor up a wall. The step between two surfaces is a straight line across
+  the projected image. Version 1 files (one surface per path) are upgraded when opened.
 - **Points are clamped to their surface** (0–1), so nothing can be drawn off the mapped area.
 - **Tests.** vitest 4 hits an npm 10.9 install bug (`Cannot read properties of null (reading
 'edgesOut')`), so the project uses vitest 3.2. It has its own `vitest.config.ts` because it

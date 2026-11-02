@@ -16,10 +16,9 @@ function playable(): Room {
   room.goals.push({ id: 'goal1', surfaceId: s.id, at: { x: 0.9, y: 0.9 } });
   room.paths.push({
     id: 'path1',
-    surfaceId: s.id,
     spawnId: 'spawn1',
     goalId: 'goal1',
-    waypoints: [{ x: 0.5, y: 0.2 }],
+    waypoints: [{ surfaceId: s.id, at: { x: 0.5, y: 0.2 } }],
   });
   room.buildZones.push({
     id: 'build1',
@@ -75,5 +74,36 @@ describe('room', () => {
     expect(fileNameFor('  Living Room #2! ')).toBe('living-room-2');
     expect(fileNameFor('../../etc')).toBe('etc');
     expect(fileNameFor('???')).toBe('room');
+  });
+
+  it('upgrades version 1 rooms (one surface per path)', () => {
+    const v1 = JSON.parse(JSON.stringify(playable())) as Record<string, unknown> & {
+      paths: Record<string, unknown>[];
+    };
+    v1.version = 1;
+    const surfaceId = (v1.surfaces as { id: string }[])[0].id;
+    v1.paths = [
+      {
+        id: 'path1',
+        surfaceId,
+        spawnId: 'spawn1',
+        goalId: 'goal1',
+        waypoints: [{ x: 0.5, y: 0.2 }],
+      },
+    ];
+    const room = parseRoom(v1);
+    expect(room.version).toBe(2);
+    expect(room.paths[0]).toEqual({
+      id: 'path1',
+      spawnId: 'spawn1',
+      goalId: 'goal1',
+      waypoints: [{ surfaceId, at: { x: 0.5, y: 0.2 } }],
+    });
+  });
+
+  it('rejects a waypoint on a missing surface', () => {
+    const room = playable();
+    room.paths[0].waypoints[0].surfaceId = 'nope';
+    expect(() => parseRoom(JSON.parse(JSON.stringify(room)))).toThrow(/missing surface/);
   });
 });

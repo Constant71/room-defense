@@ -121,7 +121,7 @@ bumped, just drag the corners back into place and the whole layout follows.
 | Corners    | `2` | Drag surface corners onto the real room.                             |
 | Spawn      | `3` | Click where enemies appear.                                          |
 | Goal       | `4` | Click the base enemies attack.                                       |
-| Path       | `5` | Click a spawn, then waypoints, then a goal. The path ends there.     |
+| Path       | `5` | Click a spawn, then waypoints, then a goal. Can cross surfaces.      |
 | Build zone | `6` | Click the corners of an area where towers may go. `Enter` closes it. |
 | Blocked    | `7` | Click the corners of an area to keep clear (furniture, TV, doors).   |
 
