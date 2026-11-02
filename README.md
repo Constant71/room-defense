@@ -24,6 +24,16 @@ npm install
 npm run dev
 ```
 
+If PowerShell says _"npm.ps1 cannot be loaded because running scripts is disabled on this
+system"_, allow local scripts for your Windows user once (no admin needed), then run the
+commands again:
+
+```bash
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+Alternatively, type `npm.cmd` instead of `npm`, or use Command Prompt instead of PowerShell.
+
 The first command is only needed once. The second starts the game at
 <http://localhost:5173/> and opens it in your default browser. If the browser does not open
 by itself, paste that address into Chrome or Edge. Press `Ctrl + C` in the terminal to stop.
