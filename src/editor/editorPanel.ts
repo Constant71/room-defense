@@ -1,6 +1,6 @@
 import { el } from '../ui/dom';
 import { emptyRoom, fileNameFor } from '../room/room';
-import { listRooms, loadRoom, saveRoom } from '../room/storage';
+import { listRooms, loadRoom, saveRoom, type RoomListing } from '../room/storage';
 import { TOOLS, type Editor, type Tool } from './editor';
 
 const LAST_ROOM_KEY = 'roomDefense.lastRoom';
@@ -146,9 +146,21 @@ export class EditorPanel {
     void this.refreshList();
   }
 
-  private async refreshList(): Promise<void> {
+  /** Saved rooms from the last refresh (newest first). */
+  rooms: RoomListing[] = [];
+  private roomListeners = new Set<() => void>();
+  /** A phone asked to save over an existing file once; the next phone save replaces it. */
+  private pendingReplace: string | null = null;
+
+  onRoomsChanged(fn: () => void): void {
+    this.roomListeners.add(fn);
+  }
+
+  async refreshList(): Promise<void> {
     try {
       const rooms = await listRooms();
+      this.rooms = rooms;
+      for (const fn of this.roomListeners) fn();
       const current = this.openSelect.value;
       this.openSelect.replaceChildren(
         ...(rooms.length
@@ -169,8 +181,9 @@ export class EditorPanel {
     );
   }
 
-  private newRoom(): void {
-    if (!this.confirmDiscard()) return;
+  /** `force` skips the unsaved-changes question (the phone asks it on its own screen). */
+  newRoom(force = false): void {
+    if (!force && !this.confirmDiscard()) return;
     const vp = this.editor.viewport;
     this.editor.setRoom(
       emptyRoom(
@@ -183,8 +196,8 @@ export class EditorPanel {
     this.editor.addSurface();
   }
 
-  private async open(file: string, quiet = false): Promise<void> {
-    if (!file || !this.confirmDiscard()) return;
+  async open(file: string, quiet = false, force = false): Promise<void> {
+    if (!file || (!force && !this.confirmDiscard())) return;
     try {
       this.editor.setRoom(await loadRoom(file), file);
       remember(file);
@@ -196,19 +209,26 @@ export class EditorPanel {
     }
   }
 
-  private async save(): Promise<void> {
+  /** `fromPhone`: never pop up a dialog on the projector; ask for a second Save instead. */
+  async save(fromPhone = false): Promise<void> {
     const ed = this.editor;
-    ed.rename(this.nameInput.value);
+    if (!fromPhone) ed.rename(this.nameInput.value);
     let file = ed.file;
     if (!file) {
       file = fileNameFor(ed.room.name);
       try {
         const existing = await listRooms();
-        if (
-          existing.some((r) => r.file === file) &&
-          !window.confirm(`rooms/${file}.json already exists. Replace it?`)
-        ) {
-          return;
+        if (existing.some((r) => r.file === file)) {
+          if (fromPhone) {
+            if (this.pendingReplace !== file) {
+              this.pendingReplace = file;
+              ed.message = `rooms/${file}.json already exists. Save again to replace it, or rename the room first.`;
+              this.render();
+              return;
+            }
+          } else if (!window.confirm(`rooms/${file}.json already exists. Replace it?`)) {
+            return;
+          }
         }
       } catch {
         // the save below reports the real problem
@@ -221,6 +241,7 @@ export class EditorPanel {
         height: Math.round(vp.height * devicePixelRatio),
       };
       await saveRoom(file, ed.room);
+      this.pendingReplace = null;
       ed.markSaved(file);
       ed.message = '';
       remember(file);

@@ -8,21 +8,26 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev:phone": "vite --mode phone",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "check": "prettier --check . && npm run test && npm run build",
+    "typecheck": "tsc",
+    "test": "vitest run",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "check": "prettier --check . && npm run test && npm run build"
   },
   "dependencies": {
-    "pixi.js": "^8.22.0"
+    "pixi.js": "^8.22.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/ws": "^8.18.2",
     "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "vite": "^8.3.5",
-    "vitest": "^3.2.7"
+    "vitest": "^5.1.0"
   }
 }

@@ -16,7 +16,8 @@ each milestone is decided.
    picker, test pattern, controller, mouse and keyboard checks.
 2. **Calibration (dropped).** Mapping is done in the room editor instead.
 3. **Room editor (done).** See below.
-4. Next: not decided yet.
+4. **Phone editing (done).** See below.
+5. Next: not decided yet.
 
 ## Room editor
 
@@ -66,3 +67,14 @@ each milestone is decided.
   bottom-right, bottom-left). This is resolution independent.
 - All other points are in **surface space**: 0–1 across that surface.
 - `output` records the resolution the room was mapped at, for reference only.
+
+## Phone editing
+
+- The room editor can be driven from a phone on the same home network, so corners can be lined
+  up while standing at them. Opt in with `npm run dev:phone`.
+- Pairing: the editor's Phone panel shows a QR code (link with the code) and a 6-digit code that
+  changes on every restart. A paired phone gets a session token and reconnects by itself.
+- The PC browser stays in charge: phones send editing commands, the PC runs them on its editor,
+  and the PC sends the updated state back. Saving always happens on the PC.
+- Phone controls: tool buttons, a pinch-zoomable map, drag/tap/long-press, Fine (4× slower)
+  drags, a nudge pad (1 or 10 px), undo/redo/delete, surfaces and rooms.

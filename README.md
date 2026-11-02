@@ -139,6 +139,48 @@ doesn't reach a goal. Press `Ctrl + S` to save. Rooms are saved as
 rooms and **New room** to start another. Saving only works while the game runs from
 `npm run dev`.
 
+## Edit the room from your phone
+
+Stand next to the real corner of the rug and drag the projected corner onto it, without walking
+back to the PC.
+
+1. Start the game with the phone command instead of the normal one:
+
+   ```bash
+   npm run dev:phone
+   ```
+
+2. **The first time only**, Windows Firewall asks whether Node.js may use the network. Tick
+   **Private networks** (your home Wi-Fi), leave _Public_ unticked, and click **Allow**.
+3. Open the **Room editor** (`F2`). The **Phone** panel shows a QR code and a 6-digit pairing
+   code.
+4. Make sure your phone is on the **same Wi-Fi** as the PC, then scan the QR code with the phone
+   camera. The phone editor opens in the browser, already paired. You can also type the address
+   shown under the QR code and enter the pairing code by hand.
+
+On the phone:
+
+- **Tap** a tool, then tap the map to place points. **Drag** points and corners to move them.
+  The projector updates as you go, so watch the wall, not the phone.
+- **Two fingers** zoom and pan the map; **Fit** resets it. **Fine** makes drags 4× slower for
+  precise corner placement.
+- **Nudge** arrows move the selected corner (or spawn/goal) by 1 or 10 projector pixels.
+- **Long-press** a point to remove it (Select tool). **Finish**, **Remove last point** and
+  **Cancel** are under the map while drawing.
+- **Save** saves the room on the PC (`rooms/*.json`). You can also open other rooms or start a
+  new one from the bottom of the phone page.
+
+Good to know:
+
+- Phone editing only works while the game runs from `npm run dev:phone`. Plain `npm run dev`
+  stays on the PC only and doesn't show the QR code.
+- It only works on your home network, not over the internet.
+- The pairing code changes every time you restart the game. A paired phone reconnects by itself
+  until then. After 5 wrong codes, pairing is blocked for a minute.
+- If the phone can't connect: check it's on the same Wi-Fi (not mobile data or a guest network),
+  and that you allowed Node.js on **Private** networks. In Windows settings, your Wi-Fi should be
+  set to a **Private** network.
+
 ## Keys
 
 | Key       | Action                                          |
@@ -165,6 +207,12 @@ slowest frame in the last second. On a 60 Hz projector both numbers should read 
 | `src/`      | Game source code (TypeScript + PixiJS)                          |
 
 ## Other commands
+
+```bash
+npm run dev:phone
+```
+
+Like `npm run dev`, but also lets a paired phone edit rooms over your home Wi-Fi.
 
 ```bash
 npm run check

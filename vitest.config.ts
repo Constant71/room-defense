@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// Separate from vite.config.ts: vitest 3 bundles its own Vite version.
+// Kept separate from vite.config.ts so tests never start the room or phone servers.
 export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],

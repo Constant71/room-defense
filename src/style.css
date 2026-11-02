@@ -13,6 +13,11 @@
   box-sizing: border-box;
 }
 
+/* The hidden attribute must win over display rules like grid or flex. */
+[hidden] {
+  display: none !important;
+}
+
 /* Everything in the panels is sized in rem, so this one value scales all UI text.
    It is set from the Text size control (see src/ui/uiScale.ts). */
 html {
@@ -388,4 +393,17 @@ select:focus {
 
 #hud::-webkit-scrollbar-thumb {
   background: var(--cyan);
+}
+
+.qr {
+  display: block;
+  width: min(16rem, 100%);
+  height: auto;
+  margin: 0.5rem 0;
+  image-rendering: pixelated;
+}
+
+.code {
+  font-size: 1.4rem;
+  letter-spacing: 0.15em;
 }

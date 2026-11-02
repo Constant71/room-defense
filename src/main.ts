@@ -11,6 +11,7 @@ import { EditorView } from './editor/editorView';
 import { EditorPanel } from './editor/editorPanel';
 import { el } from './ui/dom';
 import { uiScale } from './ui/uiScale';
+import { RemoteHost } from './remote/host';
 
 type Mode = 'checks' | 'editor';
 const MODE_KEY = 'roomDefense.mode';
@@ -97,6 +98,7 @@ async function main(): Promise<void> {
     editorView.visible = editing;
     editorPanel.active = editing;
     byId('editor-panel').hidden = !editing;
+    byId('phone-panel').hidden = !editing;
     byId('input-panel').hidden = editing;
     byId('gamepad-panel').hidden = editing;
     checksButton.classList.toggle('active', !editing);
@@ -112,6 +114,9 @@ async function main(): Promise<void> {
   editorButton.addEventListener('click', () => setMode('editor'));
   setMode(savedMode());
   void editorPanel.restore();
+  void new RemoteHost(byId('phone-panel'), editor, editorPanel, () => {
+    if (mode !== 'editor') setMode('editor');
+  }).start();
 
   // Editor mouse input on the canvas only, so clicks on panels never draw.
   const canvas = app.canvas;

@@ -46,3 +46,31 @@ of null (reading 'edgesOut')`). `npm run check` currently means type-check + pro
 - **Status bar:** in the editor, the current tool, its instructions and any warning are shown in
   a box on the side away from the panels. It stays visible when the panels are hidden.
 - The projector panel hides itself once the game is fullscreen.
+
+## Phone editing
+
+- **Opt-in network access.** Only `npm run dev:phone` (Vite mode `phone`) listens on the network
+  (`0.0.0.0`); plain `npm run dev` stays on `localhost`.
+- **PC is the authority.** The Editor runs only in the PC browser. Phones send small commands
+  (pointer down/move/up in output space, tool changes, nudge...) and draw the state the PC
+  sends back (~30 updates/s). This reuses all editor logic and means a phone can never write
+  files directly.
+- **Server is a relay** (`tools/remote.ts`, WebSocket on `/remote-ws`, using `ws`). The PC
+  connection and `/api/remote/info` (which reveals the code) only accept this PC (loopback).
+  `/api/rooms` is loopback-only too.
+- **Pairing.** 6-digit code from `crypto.randomInt`, new each server start, compared in constant
+  time; 5 wrong codes per address per minute locks that address out for a minute; unpaired
+  sockets are closed after 30 s. A successful pairing returns a random 192-bit token that
+  survives reconnects until the server restarts. The QR link carries the code in the URL
+  fragment, which browsers never send to the server.
+- **Untrusted input.** Every phone command is validated on the PC (`parseCommand`); unknown or
+  malformed commands are dropped. Messages are capped at 512 KB.
+- **Finger-sized hit areas.** Each phone press carries the finger radius, so the PC widens its
+  hit test for that press only.
+- **No dialogs on the projector for phone actions.** The phone asks "discard unsaved changes?"
+  itself; saving over an existing file from the phone needs a second Save instead of a pop-up.
+- **Plain HTTP on the home network.** Fine for a local game; nothing sensitive is sent and the
+  code is short-lived. HTTPS would need certificates on every phone.
+- **Known test quirk:** in the headless test browser, screenshots can show a transparent patch
+  the size of the editor status box at the top-left. It is a headless compositing artifact (no
+  element is there and the page background is opaque), not something drawn by the game.

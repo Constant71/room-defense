@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join, resolve } from 'node:path';
 import type { Plugin } from 'vite';
 import { parseRoom, ROOM_FILE_RE } from '../src/room/room.ts';
+import { isLoopback } from './remote.ts';
 
 const MAX_BODY = 2 * 1024 * 1024;
 
@@ -12,7 +13,8 @@ const MAX_BODY = 2 * 1024 * 1024;
  *   GET  /api/rooms          -> [{ file, name, updated }]
  *   GET  /api/rooms/<file>   -> room JSON
  *   PUT  /api/rooms/<file>   -> validate and save
- * Only listens on localhost (see vite.config.ts).
+ * Only answers requests from this PC (loopback), even when phone editing opens the
+ * server to the local network.
  */
 export function roomsApi(roomsDir: string): Plugin {
   const dir = resolve(roomsDir);
@@ -45,6 +47,9 @@ export function roomsApi(roomsDir: string): Plugin {
   ): Promise<void> => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     if (!url.pathname.startsWith('/api/rooms')) return next();
+    // Room files are only read and written by the PC browser, never directly by a phone.
+    if (!isLoopback(req.socket.remoteAddress))
+      return send(res, 403, { error: 'only from this PC' });
     const file = url.pathname.slice('/api/rooms'.length).replace(/^\//, '');
     try {
       await mkdir(dir, { recursive: true });

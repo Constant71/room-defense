@@ -332,7 +332,21 @@ export class Editor {
     return best;
   }
 
-  pointerDown(px: Vec2, button: number, double: boolean): void {
+  /**
+   * `hitScale` overrides the click-target size for this press only: a fingertip on a
+   * small phone map covers many projector pixels.
+   */
+  pointerDown(px: Vec2, button: number, double: boolean, hitScale?: number): void {
+    const normalScale = this.handleScale;
+    if (hitScale !== undefined) this.handleScale = Math.max(normalScale, hitScale);
+    try {
+      this.pointerDownInner(px, button, double);
+    } finally {
+      this.handleScale = normalScale;
+    }
+  }
+
+  private pointerDownInner(px: Vec2, button: number, double: boolean): void {
     this.pointer = px;
     this.message = '';
     switch (this.tool) {
