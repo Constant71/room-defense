@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "players": [
+    { "id": 1, "input": "gamepad", "gamepadIndex": 0 },
+    { "id": 2, "input": "gamepad", "gamepadIndex": 1 }
+  ],
+  "stickDeadzone": 0.15,
+  "keyboardMouseFallback": true
+}
