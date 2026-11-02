@@ -2,8 +2,8 @@
 
 A local two-player tower defense projected onto a real room.
 
-**Status: milestone 1 (project skeleton).** For now it shows a projector test pattern plus
-controller, mouse and keyboard checks. There is no calibration, editor or gameplay yet.
+**Status: room editor.** It has a projector test pattern, controller, mouse and keyboard
+checks, and a room editor for mapping the game onto your room. There is no gameplay yet.
 
 ## Requirements
 
@@ -89,6 +89,45 @@ pixels), which mouse buttons are held, the scroll wheel count, every key that is
 and the last key pressed. A yellow crosshair follows the mouse on the pattern and turns magenta
 while a button is held.
 
+## Map your room (room editor)
+
+Press **F2** (or click **Room editor** at the top of the panel) to switch between the checks
+and the editor. Do this with the game fullscreen on the projector, using the PC mouse: you draw
+directly onto the projected image, so what you see in the room is what you get.
+
+**1. Surfaces.** Add one surface for each flat area the projector hits: the floor, a wall, a
+table top. Each surface is drawn as a grid. With the **Corners** tool (`2`), drag its four
+corners onto four real corners in the room, such as the corners of a rug, a doorway or tape
+marks on the floor. The grid bends to match the perspective. Click a corner and use the
+**arrow keys** to nudge it one pixel at a time (**Shift** for 10). The thick edge is the top.
+
+**2. Game layout.** Everything you draw sticks to the surface it is on. If the projector gets
+bumped, just drag the corners back into place and the whole layout follows.
+
+| Tool       | Key | How                                                                  |
+| ---------- | --- | -------------------------------------------------------------------- |
+| Select     | `1` | Click to select. Drag points or whole zones to move them.            |
+| Corners    | `2` | Drag surface corners onto the real room.                             |
+| Spawn      | `3` | Click where enemies appear.                                          |
+| Goal       | `4` | Click the base enemies attack.                                       |
+| Path       | `5` | Click a spawn, then waypoints, then a goal. The path ends there.     |
+| Build zone | `6` | Click the corners of an area where towers may go. `Enter` closes it. |
+| Blocked    | `7` | Click the corners of an area to keep clear (furniture, TV, doors).   |
+
+- `Enter` or a double-click finishes a path or zone, `Backspace` removes the last point and
+  `Esc` cancels.
+- With **Select**, double-click an edge of the selected path or zone to add a point, and
+  right-click a point to remove it. `Delete` removes the selected item.
+- `Ctrl + Z` undoes, `Ctrl + Y` redoes.
+- **Panel in the way?** Press `P` to move it to the other side of the screen, or `H` to hide it.
+  The keyboard shortcuts keep working while it is hidden.
+
+**3. Check and save.** The **Room check** list says what is still missing, such as a path that
+doesn't reach a goal. Press `Ctrl + S` to save. Rooms are saved as
+`rooms/<room-name>.json`, and the last room you opened reopens next time. Use **Open** to switch
+rooms and **New room** to start another. Saving only works while the game runs from
+`npm run dev`.
+
 ## Keys
 
 | Key   | Action                                   |
@@ -112,6 +151,12 @@ slowest frame in the last second. On a 60 Hz projector both numbers should read 
 | `src/`      | Game source code (TypeScript + PixiJS)                          |
 
 ## Other commands
+
+```bash
+npm run check
+```
+
+Checks formatting, runs the unit tests and builds the game.
 
 ```bash
 npm run build

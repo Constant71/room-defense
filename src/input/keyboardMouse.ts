@@ -15,7 +15,9 @@ export class KeyboardMouse {
     target.addEventListener('keydown', (e) => {
       this.heldKeys.add(e.code);
       this.lastKey = e.code;
-      const handler = this.pressHandlers.get(e.code);
+      // While typing in a text field only function keys act as shortcuts.
+      const typing = isTextField(e.target) && !/^F\d+$/.test(e.code);
+      const handler = typing ? undefined : this.pressHandlers.get(e.code);
       if (handler) {
         e.preventDefault();
         if (!e.repeat) handler();
@@ -47,4 +49,9 @@ export class KeyboardMouse {
   onPress(code: string, handler: () => void): void {
     this.pressHandlers.set(code, handler);
   }
+}
+
+function isTextField(target: EventTarget | null): boolean {
+  const tag = (target as HTMLElement | null)?.tagName;
+  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
 }

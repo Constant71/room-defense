@@ -24,6 +24,13 @@ body {
     14px/1.4 'Segoe UI',
     system-ui,
     sans-serif;
+  /* Double-clicks on the canvas (closing a shape) must not select panel text. */
+  user-select: none;
+}
+
+input,
+select {
+  user-select: text;
 }
 
 #stage,
@@ -226,4 +233,91 @@ button.primary {
   margin: -6px 0 0 -6px;
   border-radius: 50%;
   background: var(--yellow);
+}
+
+/* ---- Modes and editor ---------------------------------------------------- */
+
+#hud.left {
+  right: auto;
+  left: 16px;
+}
+
+#hud > [hidden] {
+  display: none;
+}
+
+.mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+button.active {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  color: #000;
+  font-weight: 600;
+}
+
+button:disabled {
+  border-color: var(--muted);
+  color: var(--muted);
+  cursor: default;
+}
+
+h3 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+input[type='text'],
+select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--fg);
+  background: #000;
+  border: 1px solid var(--fg);
+  padding: 4px 6px;
+}
+
+input[type='text']:focus,
+select:focus {
+  outline: none;
+  border-color: var(--yellow);
+}
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 4px;
+}
+
+.tool-grid button,
+.surface-list button {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.surface-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.problems {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.error {
+  color: #ff5050;
 }
