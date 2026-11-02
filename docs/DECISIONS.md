@@ -2,8 +2,8 @@
 
 ## Milestone 1
 
-- **Location.** Room Defense lives in `room-defense/` as a standalone npm project, separate from
-  the Neumann Probe monorepo at the repo root. It is not an npm workspace of the root.
+- **Location.** Started inside the Neumann Probe repo, then moved to its own repository
+  (history kept).
 - **Spec.** The Room Defense SPEC.md was not in the repository. Milestone 1 was built from the
   task description; config file names are guesses until the spec is available.
 - **Game loop.** Fixed 60 Hz simulation step (`src/loop.ts`) with rendering once per display

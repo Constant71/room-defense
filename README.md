@@ -14,7 +14,7 @@ controller, mouse and keyboard checks. There is no calibration, editor or gamepl
 
 ## Start the game
 
-Open a terminal (PowerShell or Command Prompt) in this `room-defense` folder:
+Open a terminal (PowerShell or Command Prompt) in the project folder (where this README is):
 
 ```bash
 npm install

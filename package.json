@@ -11,13 +11,15 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "check": "npm run build"
+    "check": "prettier --check . && npm run build",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "pixi.js": "^8.22.0"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "prettier": "^3.9.10"
   }
 }
