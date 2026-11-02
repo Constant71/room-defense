@@ -49,10 +49,10 @@ export const TOOLS: { tool: Tool; key: string; label: string; hint: string }[] =
   },
 ];
 
-/** Hit distances in output pixels. */
-const HANDLE_PX = 12;
-const MARKER_PX = 18;
-const LINE_PX = 8;
+/** Hit distances in output pixels at UI scale 1 (multiplied by Editor.handleScale). */
+const HANDLE = 12;
+const MARKER = 18;
+const LINE = 8;
 const UNDO_LIMIT = 200;
 
 export interface Selection {
@@ -94,6 +94,8 @@ export class Editor {
   /** Last pointer position in output pixels (null when outside the canvas). */
   pointer: Vec2 | null = null;
   message = '';
+  /** Grows handles and click targets along with the UI text size. */
+  handleScale = 1;
 
   private drag: Drag | null = null;
   private dragSnapshot: string | null = null;
@@ -317,7 +319,7 @@ export class Editor {
   private markerNear(kind: 'spawn' | 'goal', px: Vec2, surfaceId?: string): Marker | null {
     const list = kind === 'spawn' ? this.room.spawns : this.room.goals;
     let best: Marker | null = null;
-    let bestD = MARKER_PX;
+    let bestD = MARKER * this.handleScale;
     for (const m of list) {
       if (surfaceId && m.surfaceId !== surfaceId) continue;
       const p = this.uvToPx(m.surfaceId, m.at);
@@ -412,7 +414,7 @@ export class Editor {
     );
     for (const s of ordered) {
       const quad = this.surfaceQuadPx(s);
-      const index = quad.findIndex((c) => dist(c, px) <= HANDLE_PX * 1.5);
+      const index = quad.findIndex((c) => dist(c, px) <= HANDLE * this.handleScale * 1.5);
       if (index >= 0) {
         this.activeSurfaceId = s.id;
         this.selection = { kind: 'surface', id: s.id };
@@ -453,7 +455,7 @@ export class Editor {
     for (const p of this.room.paths) {
       const pts = this.pathPx(p);
       for (let i = 1; i < pts.length; i++) {
-        if (distToSegment(px, pts[i - 1], pts[i]) <= LINE_PX) {
+        if (distToSegment(px, pts[i - 1], pts[i]) <= LINE * this.handleScale) {
           this.selection = { kind: 'path', id: p.id };
           this.activeSurfaceId = p.surfaceId;
           return;
@@ -492,7 +494,7 @@ export class Editor {
     if (!surfaceId || !pts) return false;
     const pxPts = pts.map((p) => this.uvToPx(surfaceId, p));
 
-    const index = pxPts.findIndex((p) => p && dist(p, px) <= HANDLE_PX);
+    const index = pxPts.findIndex((p) => p && dist(p, px) <= HANDLE * this.handleScale);
     if (index >= 0) {
       if (button === 2) {
         if (zone && zone.points.length <= 3) {
@@ -517,7 +519,7 @@ export class Editor {
       const ring = path ? this.pathPx(path) : (pxPts as Vec2[]);
       const closed = !path;
       let best = -1;
-      let bestD = LINE_PX;
+      let bestD = LINE * this.handleScale;
       const n = closed ? ring.length : ring.length - 1;
       for (let i = 0; i < n; i++) {
         const d = distToSegment(px, ring[i], ring[(i + 1) % ring.length]);

@@ -12,7 +12,7 @@ export class ProjectorPanel {
   private readonly body = el('div', { class: 'projector-body' });
   private details: ScreenDetails | null = null;
 
-  constructor(root: HTMLElement) {
+  constructor(private readonly root: HTMLElement) {
     const button = el('button', { class: 'primary' }, 'Go fullscreen on projector');
     button.addEventListener('click', () => void this.start());
     root.append(el('h2', {}, 'Projector'), button, this.body);
@@ -88,13 +88,9 @@ export class ProjectorPanel {
     this.body.replaceChildren(el('p', { class: 'warn' }, reason), el('p', {}, FALLBACK_TEXT), here);
   }
 
+  /** Once fullscreen the panel only takes space, so hide it (Esc leaves fullscreen). */
   private renderFullscreenState(): void {
-    if (document.fullscreenElement) {
-      this.body.replaceChildren(
-        el('p', {}, 'Fullscreen. Press H to hide panels, Esc to leave fullscreen.'),
-      );
-    } else {
-      this.body.replaceChildren();
-    }
+    this.root.hidden = !!document.fullscreenElement;
+    this.body.replaceChildren();
   }
 }

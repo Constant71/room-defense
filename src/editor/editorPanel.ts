@@ -32,7 +32,18 @@ const KIND_LABEL: Record<string, string> = {
 
 /** Side panel for the room editor, plus its keyboard shortcuts. */
 export class EditorPanel {
-  active = false;
+  private isActive = false;
+  /** Status bar outside the panels, so the current tool's instructions stay visible. */
+  private readonly statusBar = document.getElementById('editor-status');
+
+  get active(): boolean {
+    return this.isActive;
+  }
+
+  set active(on: boolean) {
+    this.isActive = on;
+    if (this.statusBar) this.statusBar.hidden = !on;
+  }
 
   private readonly nameInput = el('input', {
     type: 'text',
@@ -116,7 +127,7 @@ export class EditorPanel {
       el(
         'p',
         { class: 'muted small' },
-        'Keys: 1–7 tools · Enter finish · Esc cancel · Backspace undo point · Del delete · Ctrl+Z / Ctrl+Y undo/redo · arrows nudge · P move panel · H hide panels',
+        'Keys: 1–7 tools · Enter finish · Esc cancel · Backspace undo point · Del delete · Ctrl+Z / Ctrl+Y undo/redo · arrows nudge · P move panel · H hide panels · − / = text size',
       ),
     );
 
@@ -221,7 +232,7 @@ export class EditorPanel {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (!this.active) return;
+    if (!this.isActive) return;
     const ed = this.editor;
     const ctrl = e.ctrlKey || e.metaKey;
     if (ctrl && e.code === 'KeyS') {
@@ -305,6 +316,12 @@ export class EditorPanel {
     this.hint.textContent = TOOLS.find((t) => t.tool === ed.tool)?.hint ?? '';
     this.message.textContent = ed.message;
     this.message.hidden = !ed.message;
+    const tool = TOOLS.find((t) => t.tool === ed.tool);
+    this.statusBar?.replaceChildren(
+      el('span', { class: 'tool' }, `${tool?.key ?? ''} ${tool?.label ?? ''}`),
+      tool?.hint ?? '',
+      ...(ed.message ? [el('p', { class: 'warn' }, ed.message)] : []),
+    );
 
     this.surfaceList.replaceChildren(
       ...(ed.room.surfaces.length

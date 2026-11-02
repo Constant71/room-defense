@@ -13,6 +13,9 @@ const ORANGE = 0xff9900;
 
 const GRID = 10;
 
+/** Size multiplier for lines, handles and labels; follows the UI text size. */
+let K = 1;
+
 /** Draws the room being edited. Redrawn every frame from the Editor state. */
 export class EditorView extends Container {
   private readonly g = new Graphics();
@@ -25,6 +28,7 @@ export class EditorView extends Container {
 
   draw(): void {
     const ed = this.editor;
+    K = ed.handleScale;
     const g = this.g.clear();
     let label = 0;
 
@@ -39,15 +43,15 @@ export class EditorView extends Container {
           line(g, mapping.toOutput({ x: t, y: 0 }), mapping.toOutput({ x: t, y: 1 }));
           line(g, mapping.toOutput({ x: 0, y: t }), mapping.toOutput({ x: 1, y: t }));
         }
-        g.stroke({ width: 1, color: WHITE, alpha: active ? 0.45 : 0.25 });
+        g.stroke({ width: Math.max(1, K), color: WHITE, alpha: active ? 0.75 : 0.5 });
       }
       poly(g, quad).stroke({
-        width: active ? 3 : 2,
+        width: active ? 3 * K : 2 * K,
         color: mapping ? (active ? CYAN : WHITE) : RED,
       });
       // Mark the top edge so it is clear which way up the surface is.
       line(g, quad[0], quad[1]).stroke({
-        width: active ? 5 : 3,
+        width: active ? 5 * K : 3 * K,
         color: mapping ? (active ? CYAN : WHITE) : RED,
       });
       const centre = mapping ? mapping.toOutput({ x: 0.5, y: 0.5 }) : avg(quad);
@@ -65,7 +69,7 @@ export class EditorView extends Container {
         const selected = ed.selection?.kind === kind && ed.selection.id === z.id;
         poly(g, pts)
           .fill({ color, alpha: selected ? 0.4 : 0.25 })
-          .stroke({ width: selected ? 4 : 2, color });
+          .stroke({ width: selected ? 4 * K : 2 * K, color });
         if (kind === 'blocked') hatch(g, pts, color);
         if (selected) handles(g, pts, WHITE);
       }
@@ -77,7 +81,7 @@ export class EditorView extends Container {
       if (pts.length < 2) continue;
       const selected = ed.selection?.kind === 'path' && ed.selection.id === p.id;
       polyline(g, pts).stroke({
-        width: selected ? 6 : 4,
+        width: selected ? 6 * K : 4 * K,
         color: p.spawnId && p.goalId ? YELLOW : ORANGE,
       });
       for (let i = 1; i < pts.length; i++) arrow(g, pts[i - 1], pts[i], YELLOW);
@@ -95,17 +99,20 @@ export class EditorView extends Container {
       const p = ed.uvToPx(m.surfaceId, m.at);
       if (!p) continue;
       const selected = ed.selection?.id === m.id;
-      g.circle(p.x, p.y, 14).stroke({ width: selected ? 5 : 3, color: GREEN });
-      g.circle(p.x, p.y, 5).fill(GREEN);
-      this.putLabel(label++, 'SPAWN', { x: p.x, y: p.y - 28 }, GREEN);
+      g.circle(p.x, p.y, 14 * K).stroke({ width: selected ? 5 * K : 3 * K, color: GREEN });
+      g.circle(p.x, p.y, 5 * K).fill(GREEN);
+      this.putLabel(label++, 'SPAWN', { x: p.x, y: p.y - 28 * K }, GREEN);
     }
     for (const m of ed.room.goals) {
       const p = ed.uvToPx(m.surfaceId, m.at);
       if (!p) continue;
       const selected = ed.selection?.id === m.id;
-      g.rect(p.x - 13, p.y - 13, 26, 26).stroke({ width: selected ? 5 : 3, color: RED });
-      g.rect(p.x - 5, p.y - 5, 10, 10).fill(RED);
-      this.putLabel(label++, 'GOAL', { x: p.x, y: p.y - 28 }, RED);
+      g.rect(p.x - 13 * K, p.y - 13 * K, 26 * K, 26 * K).stroke({
+        width: selected ? 5 * K : 3 * K,
+        color: RED,
+      });
+      g.rect(p.x - 5 * K, p.y - 5 * K, 10 * K, 10 * K).fill(RED);
+      this.putLabel(label++, 'GOAL', { x: p.x, y: p.y - 28 * K }, RED);
     }
 
     // Corner handles
@@ -114,12 +121,12 @@ export class EditorView extends Container {
         ed.surfaceQuadPx(s).forEach((c, i) => {
           const sel = ed.selectedCorner?.surfaceId === s.id && ed.selectedCorner.index === i;
           const color = s.id === ed.activeSurfaceId ? CYAN : WHITE;
-          g.circle(c.x, c.y, 12).stroke({ width: 3, color });
-          if (sel) g.circle(c.x, c.y, 6).fill(YELLOW);
+          g.circle(c.x, c.y, 12 * K).stroke({ width: 3 * K, color });
+          if (sel) g.circle(c.x, c.y, 6 * K).fill(YELLOW);
           // Crosshair for precise placement on a real-world corner
-          line(g, { x: c.x - 22, y: c.y }, { x: c.x + 22, y: c.y });
-          line(g, { x: c.x, y: c.y - 22 }, { x: c.x, y: c.y + 22 });
-          g.stroke({ width: 1, color: sel ? YELLOW : color });
+          line(g, { x: c.x - 22 * K, y: c.y }, { x: c.x + 22 * K, y: c.y });
+          line(g, { x: c.x, y: c.y - 22 * K }, { x: c.x, y: c.y + 22 * K });
+          g.stroke({ width: 1 * K, color: sel ? YELLOW : color });
         });
       }
     }
@@ -139,9 +146,9 @@ export class EditorView extends Container {
       }
       const color = d.kind === 'path' ? YELLOW : d.kind === 'buildZone' ? CYAN : MAGENTA;
       if (pts.length) {
-        polyline(g, ed.pointer ? [...pts, ed.pointer] : pts).stroke({ width: 3, color });
+        polyline(g, ed.pointer ? [...pts, ed.pointer] : pts).stroke({ width: 3 * K, color });
         if (d.kind !== 'path' && ed.pointer && pts.length >= 2) {
-          line(g, ed.pointer, pts[0]).stroke({ width: 1, color, alpha: 0.6 });
+          line(g, ed.pointer, pts[0]).stroke({ width: 1 * K, color, alpha: 0.6 });
         }
         handles(g, pts, color);
       }
@@ -150,9 +157,9 @@ export class EditorView extends Container {
     // Cursor crosshair
     if (ed.pointer) {
       const p = ed.pointer;
-      line(g, { x: p.x - 10, y: p.y }, { x: p.x + 10, y: p.y });
-      line(g, { x: p.x, y: p.y - 10 }, { x: p.x, y: p.y + 10 });
-      g.stroke({ width: 2, color: YELLOW });
+      line(g, { x: p.x - 10 * K, y: p.y }, { x: p.x + 10 * K, y: p.y });
+      line(g, { x: p.x, y: p.y - 10 * K }, { x: p.x, y: p.y + 10 * K });
+      g.stroke({ width: 2 * K, color: YELLOW });
     }
 
     for (let i = label; i < this.labels.length; i++) this.labels[i].visible = false;
@@ -163,7 +170,13 @@ export class EditorView extends Container {
     if (!t) {
       t = new Text({
         text,
-        style: { fontFamily: 'Segoe UI, sans-serif', fontSize: 18, fontWeight: '600', fill: WHITE },
+        style: {
+          fontFamily: 'Segoe UI, sans-serif',
+          fontSize: 22,
+          fontWeight: '700',
+          fill: WHITE,
+          stroke: { color: 0x000000, width: 5 },
+        },
       });
       t.anchor.set(0.5);
       this.labels[i] = t;
@@ -171,6 +184,11 @@ export class EditorView extends Container {
     }
     if (t.text !== text) t.text = text;
     t.style.fill = color;
+    // Re-render at the real size (sharper than scaling the texture).
+    if (t.style.fontSize !== 22 * K) {
+      t.style.fontSize = 22 * K;
+      t.style.stroke = { color: 0x000000, width: 5 * K };
+    }
     t.position.set(at.x, at.y);
     t.visible = true;
   }
@@ -202,19 +220,19 @@ function avg(pts: Vec2[]): Vec2 {
 
 function handles(g: Graphics, pts: Vec2[], color: number): void {
   for (const p of pts)
-    g.rect(p.x - 6, p.y - 6, 12, 12)
+    g.rect(p.x - 6 * K, p.y - 6 * K, 12 * K, 12 * K)
       .fill({ color: 0x000000 })
-      .stroke({ width: 2, color });
+      .stroke({ width: 2 * K, color });
 }
 
 function arrow(g: Graphics, a: Vec2, b: Vec2, color: number): void {
   const len = Math.hypot(b.x - a.x, b.y - a.y);
-  if (len < 40) return;
+  if (len < 40 * K) return;
   const ux = (b.x - a.x) / len;
   const uy = (b.y - a.y) / len;
   const mx = (a.x + b.x) / 2;
   const my = (a.y + b.y) / 2;
-  const s = 10;
+  const s = 10 * K;
   g.poly(
     [
       mx + ux * s,
@@ -236,7 +254,7 @@ function hatch(g: Graphics, pts: Vec2[], color: number): void {
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
-  const step = 18;
+  const step = 18 * K;
   for (let k = minX + minY; k < maxX + maxY; k += step) {
     // Line x + y = k, intersected with each polygon edge
     const hits: number[] = [];
@@ -255,5 +273,5 @@ function hatch(g: Graphics, pts: Vec2[], color: number): void {
       line(g, { x: hits[i], y: k - hits[i] }, { x: hits[i + 1], y: k - hits[i + 1] });
     }
   }
-  g.stroke({ width: 1, color, alpha: 0.7 });
+  g.stroke({ width: 1 * K, color, alpha: 0.7 });
 }

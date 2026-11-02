@@ -134,7 +134,7 @@ export class GamepadPanel {
       const x = pad.axes[k * 2] ?? 0;
       const y = pad.axes[k * 2 + 1] ?? 0;
       const active = Math.hypot(x, y) > DEADZONE || !!pad.buttons[10 + k]?.pressed;
-      stick.dot.style.transform = `translate(${x * 26}px, ${y * 26}px)`;
+      stick.dot.style.transform = `translate(${x * 1.625}rem, ${y * 1.625}rem)`;
       stick.ring.classList.toggle('on', active);
       stick.readout.textContent = `${x.toFixed(2)}, ${y.toFixed(2)}`;
     });

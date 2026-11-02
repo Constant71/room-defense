@@ -10,6 +10,7 @@ import { Editor } from './editor/editor';
 import { EditorView } from './editor/editorView';
 import { EditorPanel } from './editor/editorPanel';
 import { el } from './ui/dom';
+import { uiScale } from './ui/uiScale';
 
 type Mode = 'checks' | 'editor';
 const MODE_KEY = 'roomDefense.mode';
@@ -67,11 +68,26 @@ async function main(): Promise<void> {
   // ---- modes ---------------------------------------------------------------
   const checksButton = el('button', {}, 'Checks');
   const editorButton = el('button', {}, 'Room editor');
+  const smaller = el('button', { title: 'Smaller text (-)' }, 'A−');
+  const bigger = el('button', { title: 'Bigger text (=)' }, 'A+');
+  const sizeLabel = el('span', { class: 'value' });
+  smaller.addEventListener('click', () => uiScale.step(-1));
+  bigger.addEventListener('click', () => uiScale.step(1));
   byId('mode-bar').append(
     checksButton,
     editorButton,
-    el('span', { class: 'muted small' }, 'F2 switches'),
+    el('span', { class: 'spacer' }),
+    el('span', {}, 'Text'),
+    smaller,
+    sizeLabel,
+    bigger,
   );
+  const applyScale = (v: number): void => {
+    sizeLabel.textContent = `${Math.round(v * 100)}%`;
+    editor.handleScale = v;
+  };
+  uiScale.onChange(applyScale);
+  applyScale(uiScale.value);
   let mode: Mode = 'checks';
   const setMode = (next: Mode): void => {
     mode = next;
@@ -125,6 +141,8 @@ async function main(): Promise<void> {
   km.onPress('F2', () => setMode(mode === 'editor' ? 'checks' : 'editor'));
   km.onPress('KeyH', () => (hud.hidden = !hud.hidden));
   km.onPress('KeyP', () => hud.classList.toggle('left'));
+  for (const code of ['Minus', 'NumpadSubtract']) km.onPress(code, () => uiScale.step(-1));
+  for (const code of ['Equal', 'NumpadAdd']) km.onPress(code, () => uiScale.step(1));
 
   // Simulation: 60 fixed steps per second. Only polls input for now.
   let padsChanged = false;
