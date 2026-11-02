@@ -75,3 +75,20 @@ of null (reading 'edgesOut')`). `npm run check` currently means type-check + pro
 - **Known test quirk:** in the headless test browser, screenshots can show a transparent patch
   the size of the editor status box at the top-left. It is a headless compositing artifact (no
   element is there and the page background is opaque), not something drawn by the game.
+
+## First playable
+
+- **Rules are pure logic** (`src/game/sim.ts`): `Game.step(dt)` in fixed 1/60 s steps, no clock
+  or graphics, so whole games run instantly in tests.
+- **World units** are fractions of the image height (`src/game/world.ts`), using the aspect ratio
+  the room was saved at. Enemies move along the path as drawn on the projected image,
+  including the jump between surfaces, at a constant on-screen speed.
+- **Balance is guarded by a test** (`test/balance.test.ts`): a simple bot that spends everything
+  before each wave must win when it mixes tower types and must lose when it builds only one
+  kind. Tuning was done with that bot: 20% more enemy health per wave was the sweet spot (18%
+  was too easy, 22% too hard).
+- **Controllers:** the first two connected pads are P1 (cyan) and P2 (magenta). Buttons act on
+  press, not hold. The mouse is a third, optional player (white).
+- **Leaving Play pauses** the game and coming back resumes it, unless the room changed. The
+  panels hide during play so they don't cover the room.
+- **No upgrades, sound or saves yet**, to keep the first playable small.

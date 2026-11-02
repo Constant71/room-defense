@@ -17,7 +17,8 @@ each milestone is decided.
 2. **Calibration (dropped).** Mapping is done in the room editor instead.
 3. **Room editor (done).** See below.
 4. **Phone editing (done).** See below.
-5. Next: not decided yet.
+5. **First playable (done).** See "Play" below.
+6. Next: not decided yet.
 
 ## Room editor
 
@@ -78,3 +79,20 @@ each milestone is decided.
   and the PC sends the updated state back. Saving always happens on the PC.
 - Phone controls: tool buttons, a pinch-zoomable map, drag/tap/long-press, Fine (4× slower)
   drags, a nudge pad (1 or 10 px), undo/redo/delete, surfaces and rooms.
+
+## Play (first playable)
+
+- Co-op for two players, one Xbox controller each (the mouse and keyboard also work). Shared
+  credits (start 150) and lives (start 20).
+- Enemies spawn at the spawns, spread over all paths in turn, and walk them to the goals, across
+  surfaces. Reaching a goal costs lives (1, or 3 for a Brute).
+- Towers only in build zones, not within 0.035 of a path, not in a blocked area, not on another
+  tower. Selling refunds 70%.
+- Towers: Pulse (cheap, fast, single target), Lance (expensive, long range, heavy), Frost (area
+  damage + slow). Towers shoot the enemy closest to its goal.
+- Enemies: Crawler, Dart (fast, fragile), Brute (slow, tough). 10 waves, started by the players;
+  later waves have more enemies, Darts from wave 2, Brutes from wave 4, and 20% more health per
+  wave. A bonus is paid for each cleared wave.
+- Win by clearing wave 10; lose at 0 lives. Menu / Space restarts.
+- World units: the projected image is 1 unit tall and `aspect` wide, so speeds and ranges look
+  the same on any projector.

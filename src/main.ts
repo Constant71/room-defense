@@ -12,8 +12,10 @@ import { EditorPanel } from './editor/editorPanel';
 import { el } from './ui/dom';
 import { uiScale } from './ui/uiScale';
 import { RemoteHost } from './remote/host';
+import { Play } from './game/play';
 
-type Mode = 'checks' | 'editor';
+type Mode = 'checks' | 'editor' | 'play';
+const MODES: Mode[] = ['checks', 'editor', 'play'];
 const MODE_KEY = 'roomDefense.mode';
 
 function byId(id: string): HTMLElement {
@@ -24,7 +26,8 @@ function byId(id: string): HTMLElement {
 
 function savedMode(): Mode {
   try {
-    return localStorage.getItem(MODE_KEY) === 'editor' ? 'editor' : 'checks';
+    const saved = localStorage.getItem(MODE_KEY);
+    return MODES.includes(saved as Mode) ? (saved as Mode) : 'checks';
   } catch {
     return 'checks';
   }
@@ -65,10 +68,13 @@ async function main(): Promise<void> {
   const inputPanel = new InputPanel(byId('input-panel'));
   const gamepadPanel = new GamepadPanel(byId('gamepad-panel'));
   const editorPanel = new EditorPanel(byId('editor-panel'), editor);
+  const play = new Play(byId('play-hud'), pads, km);
+  app.stage.addChild(play.view);
 
   // ---- modes ---------------------------------------------------------------
   const checksButton = el('button', {}, 'Checks');
   const editorButton = el('button', {}, 'Room editor');
+  const playButton = el('button', {}, 'Play');
   const smaller = el('button', { title: 'Smaller text (-)' }, 'A−');
   const bigger = el('button', { title: 'Bigger text (=)' }, 'A+');
   const sizeLabel = el('span', { class: 'value' });
@@ -77,6 +83,7 @@ async function main(): Promise<void> {
   byId('mode-bar').append(
     checksButton,
     editorButton,
+    playButton,
     el('span', { class: 'spacer' }),
     el('span', {}, 'Text'),
     smaller,
@@ -90,28 +97,56 @@ async function main(): Promise<void> {
   uiScale.onChange(applyScale);
   applyScale(uiScale.value);
   let mode: Mode = 'checks';
+  // Panels are hidden while playing (they would cover the room) and come back after.
+  let hudHiddenBeforePlay = false;
   const setMode = (next: Mode): void => {
+    const leavingPlay = mode === 'play' && next !== 'play';
+    const enteringPlay = mode !== 'play' && next === 'play';
+    const hudEl = byId('hud');
+    if (enteringPlay) {
+      hudHiddenBeforePlay = hudEl.hidden;
+      hudEl.hidden = true;
+    } else if (leavingPlay) {
+      hudEl.hidden = hudHiddenBeforePlay;
+    }
     mode = next;
+    const checks = mode === 'checks';
     const editing = mode === 'editor';
-    pattern.visible = !editing;
-    cursor.visible = !editing;
+    const playing = mode === 'play';
+    pattern.visible = checks;
+    cursor.visible = checks;
     editorView.visible = editing;
+    play.view.visible = playing;
     editorPanel.active = editing;
     byId('editor-panel').hidden = !editing;
     byId('phone-panel').hidden = !editing;
-    byId('input-panel').hidden = editing;
-    byId('gamepad-panel').hidden = editing;
-    checksButton.classList.toggle('active', !editing);
+    byId('input-panel').hidden = !checks;
+    byId('gamepad-panel').hidden = !checks;
+    byId('projector-panel').hidden = playing || !!document.fullscreenElement;
+    byId('play-hud').hidden = !playing;
+    checksButton.classList.toggle('active', checks);
     editorButton.classList.toggle('active', editing);
+    playButton.classList.toggle('active', playing);
     if (!editing) editor.pointerMove(null);
+    if (playing) play.enter(editor.room);
+    if (leavingPlay && play.game?.phase === 'wave' && !play.game.paused) play.game.togglePause();
     try {
       localStorage.setItem(MODE_KEY, mode);
     } catch {
       // only a convenience
     }
   };
-  checksButton.addEventListener('click', () => setMode('checks'));
-  editorButton.addEventListener('click', () => setMode('editor'));
+  // Blur after clicking so Space (start wave) can't re-press the button.
+  for (const [b, m] of [
+    [checksButton, 'checks'],
+    [editorButton, 'editor'],
+    [playButton, 'play'],
+  ] as const) {
+    b.addEventListener('click', () => {
+      setMode(m);
+      b.blur();
+    });
+  }
   setMode(savedMode());
   void editorPanel.restore();
   void new RemoteHost(byId('phone-panel'), editor, editorPanel, () => {
@@ -125,6 +160,11 @@ async function main(): Promise<void> {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
   canvas.addEventListener('mousedown', (e) => {
+    if (mode === 'play') {
+      e.preventDefault();
+      play.players.mouseClick(e.button);
+      return;
+    }
     if (mode !== 'editor') return;
     e.preventDefault();
     editor.pointerDown(at(e), e.button, e.detail === 2);
@@ -143,16 +183,17 @@ async function main(): Promise<void> {
   const fpsEl = byId('fps');
   const hud = byId('hud');
   km.onPress('F3', () => (fpsEl.hidden = !fpsEl.hidden));
-  km.onPress('F2', () => setMode(mode === 'editor' ? 'checks' : 'editor'));
+  km.onPress('F2', () => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]));
   km.onPress('KeyH', () => (hud.hidden = !hud.hidden));
   km.onPress('KeyP', () => hud.classList.toggle('left'));
   for (const code of ['Minus', 'NumpadSubtract']) km.onPress(code, () => uiScale.step(-1));
   for (const code of ['Equal', 'NumpadAdd']) km.onPress(code, () => uiScale.step(1));
 
-  // Simulation: 60 fixed steps per second. Only polls input for now.
+  // Simulation: 60 fixed steps per second.
   let padsChanged = false;
-  const loop = new FixedStepLoop(() => {
+  const loop = new FixedStepLoop((dt) => {
     if (pads.poll()) padsChanged = true;
+    if (mode === 'play') play.step(dt);
   });
   const meter = new FpsMeter();
 
@@ -164,6 +205,10 @@ async function main(): Promise<void> {
 
     if (mode === 'editor') {
       editorView.draw();
+      return;
+    }
+    if (mode === 'play') {
+      play.render(app.screen.width, app.screen.height, uiScale.value);
       return;
     }
 

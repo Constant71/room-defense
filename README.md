@@ -2,8 +2,8 @@
 
 A local two-player tower defense projected onto a real room.
 
-**Status: room editor.** It has a projector test pattern, controller, mouse and keyboard
-checks, and a room editor for mapping the game onto your room. There is no gameplay yet.
+**Status: first playable.** Map your room in the room editor (from the PC or your phone), then
+play all 10 waves with two controllers.
 
 ## Requirements
 
@@ -139,6 +139,47 @@ doesn't reach a goal. Press `Ctrl + S` to save. Rooms are saved as
 rooms and **New room** to start another. Saving only works while the game runs from
 `npm run dev`.
 
+## Play
+
+Press **F2** until **Play** is highlighted (it cycles Checks → Room editor → Play), or click
+**Play** in the top bar. The game uses the room open in the editor. If the room isn't ready
+(for example a path that doesn't reach a goal), it tells you what to fix.
+
+Two players defend together with one Xbox controller each, sharing credits and lives. Enemies
+come from the spawns and follow the paths to the goals, even when a path climbs from the floor
+onto a wall. Build towers in the cyan build zones to stop them. You can't build on a path or in
+a blocked area.
+
+| Controller         | Mouse and keyboard | Action                                     |
+| ------------------ | ------------------ | ------------------------------------------ |
+| Left stick / D-pad | Move the mouse     | Move your cursor                           |
+| `A`                | Left click         | Build the selected tower                   |
+| `B`                | Right click        | Sell the tower under the cursor (70% back) |
+| `X`, `RB` / `LB`   | `1`-`3`, `E` / `Q` | Next / previous tower                      |
+| `Menu`             | `Space`            | Start the next wave · pause · play again   |
+
+Your cursor shows the selected tower and its range: **green** means you can build there,
+**red** means you can't (the reason appears next to the cursor).
+
+| Tower | Cost | What it does                                  |
+| ----- | ---- | --------------------------------------------- |
+| Pulse | 50   | Fast shots at one enemy, medium range         |
+| Lance | 100  | Slow, heavy shots at one enemy, long range    |
+| Frost | 70   | Hits every enemy close by and slows them down |
+
+| Enemy   | Looks like      | Notes                                            |
+| ------- | --------------- | ------------------------------------------------ |
+| Crawler | Magenta circle  | The usual                                        |
+| Dart    | Orange triangle | Fast but fragile                                 |
+| Brute   | Red square      | Slow and tough, costs 3 lives if it gets through |
+
+Hold off all **10 waves** to win. Each enemy that reaches a goal costs lives, and you lose when
+they run out. Kills and cleared waves earn credits. Mixing tower types works much better than
+building only one kind.
+
+The panels hide while you play. Press `F2` to leave Play: the game pauses and carries on
+when you come back, unless you changed the room in the meantime.
+
 ## Edit the room from your phone
 
 Stand next to the real corner of the rug and drag the projected corner onto it, without walking
@@ -185,7 +226,7 @@ Good to know:
 
 | Key       | Action                                          |
 | --------- | ----------------------------------------------- |
-| `F2`      | Switch between the checks and the room editor   |
+| `F2`      | Switch between Checks, Room editor and Play     |
 | `F3`      | Show / hide the fps counter                     |
 | `=` / `-` | Bigger / smaller text                           |
 | `H`       | Hide / show the panels                          |
