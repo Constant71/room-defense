@@ -35,3 +35,14 @@ of null (reading 'edgesOut')`). `npm run check` currently means type-check + pro
   bundles an older Vite.
 - **Native Vite config loading.** The import chain from `vite.config.ts` uses `.ts` extensions
   and no TypeScript-only syntax, so Vite 8 can load it with Node directly.
+
+## Readability on the projector
+
+- **One text size setting** (`src/ui/uiScale.ts`), 100–300%, default 150%, saved in the browser.
+  All panel CSS is in `rem`, so this one root font size scales the panels. The editor canvas
+  scales its labels, lines, handles and click targets by the same factor.
+- **Higher contrast:** the grey text is now near-white, all text is a heavier weight, the editor
+  grid is brighter, and canvas labels have a black outline so grid lines don't cut through them.
+- **Status bar:** in the editor, the current tool, its instructions and any warning are shown in
+  a box on the side away from the panels. It stays visible when the panels are hidden.
+- The projector panel hides itself once the game is fullscreen.

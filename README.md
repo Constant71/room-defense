@@ -55,6 +55,17 @@ If the browser cannot list displays, or you clicked _Block_, the panel says so. 
 
 Press **Esc** to leave fullscreen.
 
+### Can't read the text on the projector?
+
+Make it bigger: click **A+** at the top of the panel, or press `=` (and `-` to shrink). It goes
+up to 300% and is remembered next time. Labels and handles in the room editor grow with it.
+
+- In the room editor, the **yellow box** in the corner always shows the current tool and what
+  to do next, even when the panels are hidden with `H`.
+- If the panel covers what you are working on, press `P` to move it to the other side, or `H` to
+  hide it.
+- A long panel scrolls: use the mouse wheel over it.
+
 ### What the test pattern should look like
 
 - A **white border** touching all four edges of the projected image. If part of it is missing,
@@ -130,12 +141,15 @@ rooms and **New room** to start another. Saving only works while the game runs f
 
 ## Keys
 
-| Key   | Action                                   |
-| ----- | ---------------------------------------- |
-| `F3`  | Show / hide the fps counter              |
-| `H`   | Hide / show the panels (pattern only)    |
-| `F11` | Browser fullscreen on the current screen |
-| `Esc` | Leave fullscreen                         |
+| Key       | Action                                          |
+| --------- | ----------------------------------------------- |
+| `F2`      | Switch between the checks and the room editor   |
+| `F3`      | Show / hide the fps counter                     |
+| `=` / `-` | Bigger / smaller text                           |
+| `H`       | Hide / show the panels                          |
+| `P`       | Move the panels to the other side of the screen |
+| `F11`     | Browser fullscreen on the current screen        |
+| `Esc`     | Leave fullscreen                                |
 
 The fps counter shows frames drawn per second, simulation steps per second (always 60) and the
 slowest frame in the last second. On a 60 Hz projector both numbers should read 60.
@@ -145,7 +159,7 @@ slowest frame in the last second. On a 60 Hz projector both numbers should read 
 | Folder      | Contents                                                        |
 | ----------- | --------------------------------------------------------------- |
 | `config/`   | Settings files (placeholders for now, not read by the game yet) |
-| `rooms/`    | Calibrated rooms (from milestone 2)                             |
+| `rooms/`    | Rooms saved by the room editor                                  |
 | `profiles/` | Player profiles                                                 |
 | `saves/`    | Saved games (not committed to git)                              |
 | `src/`      | Game source code (TypeScript + PixiJS)                          |
