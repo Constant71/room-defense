@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ENEMIES, makeWave, RULES, TOWERS } from '../src/game/defs';
+import {
+  ENEMIES,
+  makeWave,
+  MAX_LEVEL,
+  RULES,
+  towerStats,
+  TOWERS,
+  UPGRADES,
+} from '../src/game/defs';
 import { Game } from '../src/game/sim';
 import { World } from '../src/game/world';
 import { addSurface, emptyRoom } from '../src/room/room';
@@ -187,5 +195,41 @@ describe('Game', () => {
     expect(w8.some((s) => s.kind === 'brute')).toBe(true);
     expect(w1.some((s) => s.kind === 'brute')).toBe(false);
     expect(w8[0].hpScale).toBeGreaterThan(w1[0].hpScale);
+  });
+
+  it('upgrades towers up to the top level, for credits', () => {
+    const g = new Game(new World(room()));
+    g.credits = 1000;
+    g.place('pulse', { x: 0.5, y: 0.35 });
+    expect(g.upgrade({ x: 0.2, y: 0.35 })).toBe('no-tower');
+    expect(g.upgrade({ x: 0.505, y: 0.35 })).toBe('ok');
+    expect(g.upgrade({ x: 0.5, y: 0.35 })).toBe('ok');
+    expect(g.towers[0].level).toBe(MAX_LEVEL);
+    expect(g.upgrade({ x: 0.5, y: 0.35 })).toBe('max-level');
+    const spent = TOWERS.pulse.cost + UPGRADES.pulse[0].cost + UPGRADES.pulse[1].cost;
+    expect(g.credits).toBe(1000 - spent);
+    // Selling refunds part of everything spent on the tower.
+    expect(g.refundAt({ x: 0.5, y: 0.35 })).toBe(Math.floor(spent * RULES.sellRefund));
+    g.credits = 0;
+    expect(g.sell({ x: 0.5, y: 0.35 })).toBe(Math.floor(spent * RULES.sellRefund));
+  });
+
+  it('refuses an upgrade it cannot afford', () => {
+    const g = new Game(new World(room()));
+    g.place('lance', { x: 0.5, y: 0.35 });
+    g.credits = UPGRADES.lance[0].cost - 1;
+    expect(g.upgrade({ x: 0.5, y: 0.35 })).toBe('no-credits');
+    expect(g.towers[0].level).toBe(1);
+  });
+
+  it('upgraded towers are stronger', () => {
+    for (const kind of ['pulse', 'lance', 'frost'] as const) {
+      const l1 = towerStats(kind, 1);
+      const l3 = towerStats(kind, 3);
+      expect(l3.damage * l3.rate).toBeGreaterThan(l1.damage * l1.rate);
+      expect(l3.range).toBeGreaterThan(l1.range);
+      expect(l3.cost).toBe(l1.cost); // stats keep the build cost; upgrades cost extra
+    }
+    expect(towerStats('frost', 3).slow!.factor).toBeLessThan(towerStats('frost', 1).slow!.factor);
   });
 });

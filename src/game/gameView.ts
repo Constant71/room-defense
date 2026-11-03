@@ -1,6 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { Vec2 } from '../room/types';
-import { ENEMIES, RULES, TOWERS, type TowerKind } from './defs';
+import { ENEMIES, RULES, towerStats, TOWERS, upgradeCost, type TowerKind } from './defs';
 import type { Player } from './players';
 import type { Game } from './sim';
 
@@ -97,7 +97,7 @@ export class GameView extends Container {
 
     // Towers
     for (const t of game.towers) {
-      this.tower(g, t.kind, this.px(t.pos), 1);
+      this.tower(g, t.kind, this.px(t.pos), 1, t.level);
     }
 
     // Effects
@@ -110,7 +110,7 @@ export class GameView extends Container {
           .stroke({ width: 3 * k, color: e.color });
       } else {
         const left = Math.max(0, (e.until - game.time) / 0.25);
-        g.circle(a.x, a.y, this.len(TOWERS.frost.range) * (1 - left * 0.5)).stroke({
+        g.circle(a.x, a.y, this.len(e.radius ?? TOWERS.frost.range) * (1 - left * 0.5)).stroke({
           width: 3 * k,
           color: e.color,
           alpha: left,
@@ -151,9 +151,9 @@ export class GameView extends Container {
       const ok = canPlace(p);
       const hover = game.towerAt(p.cursor);
       if (hover) {
-        // Show what selling would remove.
+        // Show the tower's current reach (what upgrading or selling affects).
         const hq = this.px(hover.pos);
-        g.circle(hq.x, hq.y, this.len(TOWERS[hover.kind].range)).stroke({
+        g.circle(hq.x, hq.y, this.len(towerStats(hover.kind, hover.level).range)).stroke({
           width: 2 * k,
           color: WHITE,
           alpha: 0.6,
@@ -177,18 +177,20 @@ export class GameView extends Container {
         .lineTo(q.x, q.y + s);
       g.stroke({ width: 3 * k, color: p.color });
       const note = p.noteUntil > performance.now() ? `  ${p.note}` : '';
-      this.putLabel(
-        label++,
-        `${p.label} · ${def.name} ${def.cost}${note}`,
-        { x: q.x, y: q.y + 28 * k },
-        p.color,
-      );
+      let text = `${p.label} · ${def.name} ${def.cost}`;
+      if (hover) {
+        const up = upgradeCost(hover.kind, hover.level);
+        const upText = up === null ? 'max level' : `upgrade ${up}`;
+        text = `${p.label} · ${TOWERS[hover.kind].name} L${hover.level} · ${upText} · sell ${game.refundAt(hover.pos)}`;
+      }
+      this.putLabel(label++, `${text}${note}`, { x: q.x, y: q.y + 28 * k }, p.color);
     }
     for (let i = label; i < this.labels.length; i++) this.labels[i].visible = false;
   }
 
-  private tower(g: Graphics, kind: TowerKind, q: Vec2, alpha: number): void {
-    const r = this.len(RULES.towerRadius);
+  private tower(g: Graphics, kind: TowerKind, q: Vec2, alpha: number, level = 1): void {
+    // Upgraded towers are a little bigger and show one pip per level.
+    const r = this.len(RULES.towerRadius) * (1 + (level - 1) * 0.12);
     const def = TOWERS[kind];
     const k = this.scale1;
     if (kind === 'lance') {
@@ -210,6 +212,13 @@ export class GameView extends Container {
         .stroke({ width: 3 * k, color: def.color, alpha });
     }
     g.circle(q.x, q.y, r * 0.3).fill({ color: def.color, alpha });
+    if (level > 1) {
+      const pip = Math.max(3 * k, r * 0.25);
+      for (let i = 0; i < level; i++) {
+        const x = q.x + (i - (level - 1) / 2) * pip * 3;
+        g.circle(x, q.y + r + pip * 2, pip).fill({ color: 0xffffff, alpha });
+      }
+    }
   }
 
   private putLabel(i: number, text: string, at: Vec2, color: number): void {

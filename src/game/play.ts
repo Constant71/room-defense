@@ -3,10 +3,12 @@ import type { KeyboardMouse } from '../input/keyboardMouse';
 import { checkRoom } from '../room/room';
 import type { Room, Vec2 } from '../room/types';
 import { el } from '../ui/dom';
-import { TOWER_ORDER } from './defs';
+import { TOWER_ORDER, TOWERS } from './defs';
 import { GameView } from './gameView';
 import { Players, type Player } from './players';
-import { Game, type PlaceResult } from './sim';
+import { rumble } from './rumble';
+import { Game, type PlaceResult, type UpgradeResult } from './sim';
+import { sound, type SoundName } from './sound';
 import { World } from './world';
 
 const REASONS: Record<Exclude<PlaceResult, 'ok'>, string> = {
@@ -14,6 +16,13 @@ const REASONS: Record<Exclude<PlaceResult, 'ok'>, string> = {
   blocked: 'Blocked area',
   'on-path': 'Too close to the path',
   'too-close': 'Too close to a tower',
+  'no-credits': 'Not enough credits',
+  'not-now': '',
+};
+
+const UPGRADE_REASONS: Record<Exclude<UpgradeResult, 'ok'>, string> = {
+  'no-tower': 'No tower here to upgrade',
+  'max-level': 'Already at top level',
   'no-credits': 'Not enough credits',
   'not-now': '',
 };
@@ -117,13 +126,38 @@ export class Play {
         break;
       }
       case 'place': {
+        // Pressing build on an existing tower upgrades it instead.
+        if (game.towerAt(p.cursor)) return this.act(game, p, 'upgrade');
         const r = game.place(p.tower, p.cursor, p.id);
-        if (r !== 'ok' && REASONS[r]) this.note(p, REASONS[r]);
+        if (r === 'ok') {
+          sound.play('build');
+          rumble(p.padIndex, 0, 0.35, 80);
+        } else if (REASONS[r]) {
+          this.note(p, REASONS[r]);
+          sound.play('error');
+        }
+        break;
+      }
+      case 'upgrade': {
+        const r = game.upgrade(p.cursor);
+        if (r === 'ok') {
+          const t = game.towerAt(p.cursor);
+          this.note(p, `${t ? TOWERS[t.kind].name : 'Tower'} level ${t?.level ?? ''}`);
+          sound.play('upgrade');
+          rumble(p.padIndex, 0.2, 0.5, 120);
+        } else if (UPGRADE_REASONS[r]) {
+          this.note(p, UPGRADE_REASONS[r]);
+          sound.play('error');
+        }
         break;
       }
       case 'sell': {
         const refund = game.sell(p.cursor);
-        if (refund) this.note(p, `Sold +${refund}`);
+        if (refund) {
+          this.note(p, `Sold +${refund}`);
+          sound.play('sell');
+          rumble(p.padIndex, 0, 0.25, 60);
+        }
         break;
       }
     }
@@ -141,6 +175,21 @@ export class Play {
 
   private onEvent(e: string): void {
     const [kind, a, b] = e.split(':');
+    const sfx: Record<string, SoundName> = {
+      kill: 'kill',
+      leak: 'leak',
+      'wave-start': 'wave-start',
+      'wave-clear': 'wave-clear',
+      won: 'won',
+      lost: 'lost',
+    };
+    if (kind === 'shot') sound.play(`shot-${a}` as SoundName);
+    else if (sfx[kind]) sound.play(sfx[kind]);
+    if (kind === 'leak') {
+      // Everyone feels it when an enemy gets through.
+      for (const p of this.players.pads) rumble(p.padIndex, 0.6, 0.3, 220);
+    }
+    if (kind === 'lost') for (const p of this.players.pads) rumble(p.padIndex, 1, 1, 600);
     if (kind === 'wave-start') this.flash(`Wave ${a}`, 1800);
     if (kind === 'wave-clear' && this.game?.phase !== 'won')
       this.flash(`Wave ${a} cleared! +${b} credits`);
@@ -183,9 +232,9 @@ export class Play {
     const pads = this.players.pads.filter((p) => p.active).length;
     const help =
       (pads
-        ? 'Controller: stick move · A build · B sell · X / LB / RB tower · Menu wave / pause'
+        ? 'Controller: stick move · A build · Y upgrade · B sell · X / LB / RB tower · Menu wave / pause'
         : 'No controller yet: plug one in and press any button on it.') +
-      '\nMouse: click build · right-click sell · 1-3 or Q / E tower · Space wave / pause · F2 leave';
+      '\nMouse: click build · U or middle-click upgrade · right-click sell · 1-3 or Q / E tower · Space wave / pause · M mute · F2 leave';
     if (this.help.textContent !== help) this.help.textContent = help;
     // Only between waves: during a wave it would cover the room.
     this.help.hidden = g.phase === 'wave' && !g.paused;

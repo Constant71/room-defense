@@ -3,7 +3,7 @@ import type { KeyboardMouse } from '../input/keyboardMouse';
 import type { Vec2 } from '../room/types';
 import { TOWER_ORDER, type TowerKind } from './defs';
 
-export type Action = 'place' | 'sell' | 'next' | 'prev' | 'menu';
+export type Action = 'place' | 'sell' | 'upgrade' | 'next' | 'prev' | 'menu';
 
 export interface Player {
   /** 1 and 2 for controllers, 0 for the mouse. */
@@ -17,6 +17,8 @@ export interface Player {
   note: string;
   noteUntil: number;
   active: boolean;
+  /** Gamepad index driving this player (for rumble), or null for the mouse. */
+  padIndex: number | null;
 }
 
 const DEADZONE = 0.15;
@@ -29,6 +31,7 @@ const PAD_COLORS = [0x00ffff, 0xff00ff];
 const A = 0;
 const B = 1;
 const X = 2;
+const Y = 3;
 const LB = 4;
 const RB = 5;
 const MENU = 9;
@@ -51,6 +54,7 @@ export class Players {
     note: '',
     noteUntil: 0,
     active: false,
+    padIndex: null,
   }));
   readonly mouse: Player = {
     id: 0,
@@ -61,6 +65,7 @@ export class Players {
     note: '',
     noteUntil: 0,
     active: false,
+    padIndex: null,
   };
 
   private prevButtons = new Map<number, boolean[]>();
@@ -71,9 +76,10 @@ export class Players {
     return [...this.pads, this.mouse];
   }
 
-  /** Called from the canvas mouse handler: left = build, right = sell. */
+  /** Called from the canvas mouse handler: left = build, middle = upgrade, right = sell. */
   mouseClick(button: number): void {
     if (button === 0) this.mouseClicks.push('place');
+    else if (button === 1) this.mouseClicks.push('upgrade');
     else if (button === 2) this.mouseClicks.push('sell');
   }
 
@@ -92,7 +98,10 @@ export class Players {
 
     // Controllers: the first two connected become P1 and P2.
     const connected = [...gamepads.pads.values()].sort((a, b) => a.index - b.index).slice(0, 2);
-    this.pads.forEach((p, i) => (p.active = i < connected.length));
+    this.pads.forEach((p, i) => {
+      p.active = i < connected.length;
+      p.padIndex = connected[i]?.index ?? null;
+    });
     connected.forEach((pad, i) => {
       const player = this.pads[i];
       const pressed = pad.buttons.map((b) => b.pressed);
@@ -118,6 +127,7 @@ export class Players {
 
       if (down(A)) out.push({ player, action: 'place' });
       if (down(B)) out.push({ player, action: 'sell' });
+      if (down(Y)) out.push({ player, action: 'upgrade' });
       if (down(X) || down(RB)) out.push({ player, action: 'next' });
       if (down(LB)) out.push({ player, action: 'prev' });
       if (down(MENU)) out.push({ player, action: 'menu' });
@@ -138,6 +148,7 @@ export class Players {
     });
     if (keyDown('KeyQ')) out.push({ player: m, action: 'prev' });
     if (keyDown('KeyE')) out.push({ player: m, action: 'next' });
+    if (keyDown('KeyU')) out.push({ player: m, action: 'upgrade' });
     if (keyDown('Space') || keyDown('Enter')) out.push({ player: m, action: 'menu' });
     this.prevKeys = new Set(km.heldKeys);
     return out;

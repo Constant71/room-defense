@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { RULES, TOWERS, type TowerKind } from '../src/game/defs';
+import { RULES, TOWERS, upgradeCost, type TowerKind } from '../src/game/defs';
 import { Game } from '../src/game/sim';
 import { World } from '../src/game/world';
 import { addSurface, emptyRoom } from '../src/room/room';
@@ -52,10 +52,10 @@ function play(strategy: (g: Game) => void, zig: boolean): Game {
 }
 
 // Greedy: place the chosen kind at the best free spot near the path start..end.
-function greedy(kinds: TowerKind[]) {
+function greedy(kinds: TowerKind[], max = Infinity) {
   let i = 0;
   return (g: Game) => {
-    for (;;) {
+    while (g.towers.length < max) {
       let kind = kinds[i % kinds.length];
       if (g.credits < TOWERS[kind].cost) {
         const cheaper = kinds.filter((k) => TOWERS[k].cost <= g.credits);
@@ -96,5 +96,28 @@ it('rewards mixing tower types', () => {
     expect(mixed.phase).toBe('won');
     expect(pulseOnly.phase).not.toBe('won');
     expect(lanceOnly.phase).not.toBe('won');
+  }
+});
+
+/** Build up to `max` towers like `greedy`, then spend the rest on upgrades (cheapest first). */
+function upgrader(kinds: TowerKind[], max: number) {
+  const build = greedy(kinds, max);
+  return (g: Game) => {
+    build(g);
+    for (;;) {
+      const options = g.towers
+        .map((t) => ({ t, cost: upgradeCost(t.kind, t.level) }))
+        .filter((o): o is { t: (typeof g.towers)[number]; cost: number } => o.cost !== null)
+        .sort((a, b) => a.cost - b.cost);
+      if (!options.length || options[0].cost > g.credits) return;
+      g.upgrade(options[0].t.pos);
+    }
+  };
+}
+
+it('makes upgrading worthwhile, but not a few maxed towers on their own', () => {
+  for (const zig of [false, true]) {
+    expect(play(upgrader(['pulse', 'pulse', 'frost', 'lance'], 10), zig).phase).toBe('won');
+    expect(play(upgrader(['pulse', 'pulse', 'frost', 'lance'], 4), zig).phase).not.toBe('won');
   }
 });

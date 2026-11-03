@@ -150,13 +150,14 @@ come from the spawns and follow the paths to the goals, even when a path climbs 
 onto a wall. Build towers in the cyan build zones to stop them. You can't build on a path or in
 a blocked area.
 
-| Controller         | Mouse and keyboard | Action                                     |
-| ------------------ | ------------------ | ------------------------------------------ |
-| Left stick / D-pad | Move the mouse     | Move your cursor                           |
-| `A`                | Left click         | Build the selected tower                   |
-| `B`                | Right click        | Sell the tower under the cursor (70% back) |
-| `X`, `RB` / `LB`   | `1`-`3`, `E` / `Q` | Next / previous tower                      |
-| `Menu`             | `Space`            | Start the next wave · pause · play again   |
+| Controller              | Mouse and keyboard  | Action                                     |
+| ----------------------- | ------------------- | ------------------------------------------ |
+| Left stick / D-pad      | Move the mouse      | Move your cursor                           |
+| `A`                     | Left click          | Build the selected tower                   |
+| `B`                     | Right click         | Sell the tower under the cursor (70% back) |
+| `Y` (or `A` on a tower) | `U` or middle click | Upgrade the tower under the cursor         |
+| `X`, `RB` / `LB`        | `1`-`3`, `E` / `Q`  | Next / previous tower                      |
+| `Menu`                  | `Space`             | Start the next wave · pause · play again   |
 
 Your cursor shows the selected tower and its range: **green** means you can build there,
 **red** means you can't (the reason appears next to the cursor).
@@ -172,6 +173,16 @@ Your cursor shows the selected tower and its range: **green** means you can buil
 | Crawler | Magenta circle  | The usual                                        |
 | Dart    | Orange triangle | Fast but fragile                                 |
 | Brute   | Red square      | Slow and tough, costs 3 lives if it gets through |
+
+**Upgrades:** every tower can be upgraded twice (levels 2 and 3) for more damage and range;
+Frost also slows harder. Point at a tower to see its level, the upgrade price and what selling
+would give back. Dots under a tower show its level. Selling returns 70% of everything spent on
+it, upgrades included.
+
+**Sound and rumble:** shots, kills, enemies getting through, waves, wins and losses all have
+sounds. Press `M` (or **Sound on/off** in the top bar) to mute; the slider next to it sets the
+volume. Sound starts after your first key press or click (a browser rule). Controllers rumble
+when you build or upgrade, and everyone's rumbles when an enemy reaches a goal.
 
 Hold off all **10 waves** to win. Each enemy that reaches a goal costs lives, and you lose when
 they run out. Kills and cleared waves earn credits. Mixing tower types works much better than
@@ -231,6 +242,7 @@ Good to know:
 | `=` / `-` | Bigger / smaller text                           |
 | `H`       | Hide / show the panels                          |
 | `P`       | Move the panels to the other side of the screen |
+| `M`       | Sound on / off                                  |
 | `F11`     | Browser fullscreen on the current screen        |
 | `Esc`     | Leave fullscreen                                |
 

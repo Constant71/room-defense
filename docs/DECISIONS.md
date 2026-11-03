@@ -91,4 +91,19 @@ of null (reading 'edgesOut')`). `npm run check` currently means type-check + pro
   press, not hold. The mouse is a third, optional player (white).
 - **Leaving Play pauses** the game and coming back resumes it, unless the room changed. The
   panels hide during play so they don't cover the room.
-- **No upgrades, sound or saves yet**, to keep the first playable small.
+- **No saves yet** (upgrades and sound came in the next phase).
+
+## Upgrades and game feel
+
+- **Upgrade prices were tuned with the balance bot.** Putting everything into 4 fully upgraded
+  towers must lose; building around 10 towers and upgrading them must win. 15% cheaper upgrades
+  made that too easy (17 of 20 lives left), the original prices made upgrading slightly worse
+  than building; the shipped prices sit in between (4-8 lives left). Guarded in
+  `test/balance.test.ts`.
+- **Sound is synthesised** (`src/game/sound.ts`) instead of using audio files: nothing to license
+  or download, and it fits the bright, simple look. Repeated sounds are rate-limited per kind and
+  everything runs through a compressor so ten towers firing don't clip.
+- **Browsers block audio until a key press or click.** Controllers don't count, so the sound
+  starts on the first key/click (switching to Play with F2 is enough).
+- **Rumble uses `vibrationActuator.playEffect('dual-rumble')`**, which Chrome and Edge support
+  for Xbox controllers. It does nothing where unsupported.

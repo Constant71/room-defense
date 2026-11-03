@@ -5,6 +5,8 @@ import {
   makeWave,
   RULES,
   TOWERS,
+  towerStats,
+  upgradeCost,
   type EnemyKind,
   type Spawn,
   type TowerKind,
@@ -29,6 +31,8 @@ export interface Enemy {
 export interface Tower {
   id: number;
   kind: TowerKind;
+  /** 1 to MAX_LEVEL. */
+  level: number;
   pos: Vec2;
   /** Seconds until it may fire again. */
   cooldown: number;
@@ -44,7 +48,11 @@ export interface Effect {
   to: Vec2;
   color: number;
   until: number;
+  /** Pulse effects: how far the pulse reaches (world units). */
+  radius?: number;
 }
+
+export type UpgradeResult = 'ok' | 'no-tower' | 'max-level' | 'no-credits' | 'not-now';
 
 export type PlaceResult =
   'ok' | 'outside-build-zone' | 'blocked' | 'on-path' | 'too-close' | 'no-credits' | 'not-now';
@@ -120,7 +128,15 @@ export class Game {
     if (ok !== 'ok') return ok;
     const cost = TOWERS[kind].cost;
     this.credits -= cost;
-    this.towers.push({ id: this.nextId++, kind, pos: { ...pos }, cooldown: 0, spent: cost, owner });
+    this.towers.push({
+      id: this.nextId++,
+      kind,
+      level: 1,
+      pos: { ...pos },
+      cooldown: 0,
+      spent: cost,
+      owner,
+    });
     this.events.push(`build:${kind}`);
     return 'ok';
   }
@@ -136,6 +152,27 @@ export class Game {
       }
     }
     return best;
+  }
+
+  /** Upgrade the tower near `pos` one level. */
+  upgrade(pos: Vec2): UpgradeResult {
+    if (this.phase === 'won' || this.phase === 'lost' || this.paused) return 'not-now';
+    const t = this.towerAt(pos);
+    if (!t) return 'no-tower';
+    const cost = upgradeCost(t.kind, t.level);
+    if (cost === null) return 'max-level';
+    if (this.credits < cost) return 'no-credits';
+    this.credits -= cost;
+    t.spent += cost;
+    t.level++;
+    this.events.push(`upgrade:${t.kind}:${t.level}`);
+    return 'ok';
+  }
+
+  /** Credits selling the tower near `pos` would give back (0 if none). */
+  refundAt(pos: Vec2): number {
+    const t = this.towerAt(pos);
+    return t ? Math.floor(t.spent * RULES.sellRefund) : 0;
   }
 
   /** Sell the tower near `pos` for a partial refund. Returns the refund (0 if none). */
@@ -222,7 +259,7 @@ export class Game {
     for (const t of this.towers) {
       t.cooldown -= dt;
       if (t.cooldown > 0) continue;
-      const def = TOWERS[t.kind];
+      const def = towerStats(t.kind, t.level);
       const inRange = this.enemies.filter(
         (e) => e.hp > 0 && Math.hypot(e.pos.x - t.pos.x, e.pos.y - t.pos.y) <= def.range,
       );
@@ -230,8 +267,10 @@ export class Game {
       t.cooldown = 1 / def.rate;
       if (def.area) {
         for (const e of inRange) this.hit(e, def.damage, def.slow);
+        this.events.push(`shot:${t.kind}`);
         this.effects.push({
           kind: 'pulse',
+          radius: def.range,
           from: t.pos,
           to: t.pos,
           color: def.color,
@@ -241,6 +280,7 @@ export class Game {
         // Shoot the enemy closest to its goal.
         const target = inRange.reduce((a, b) => (this.remaining(a) <= this.remaining(b) ? a : b));
         this.hit(target, def.damage, def.slow);
+        this.events.push(`shot:${t.kind}`);
         this.effects.push({
           kind: 'beam',
           from: t.pos,

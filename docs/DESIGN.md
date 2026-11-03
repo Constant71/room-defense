@@ -18,7 +18,8 @@ each milestone is decided.
 3. **Room editor (done).** See below.
 4. **Phone editing (done).** See below.
 5. **First playable (done).** See "Play" below.
-6. Next: not decided yet.
+6. **Upgrades and game feel (done).** Tower upgrades, sound effects, controller rumble.
+7. Next: not decided yet.
 
 ## Room editor
 
@@ -96,3 +97,15 @@ each milestone is decided.
 - Win by clearing wave 10; lose at 0 lives. Menu / Space restarts.
 - World units: the projected image is 1 unit tall and `aspect` wide, so speeds and ranges look
   the same on any projector.
+
+## Upgrades, sound and rumble
+
+- Every tower has 3 levels. Upgrades cost a bit less than a new tower and add damage and range
+  (Pulse also fires faster at level 3; Frost slows harder and longer). Selling refunds 70% of
+  everything spent. Y upgrades on a controller (A on an existing tower does too); U or middle
+  click with the mouse.
+- Sound effects are synthesised in the browser (no files): per-tower shots, kills, leaks,
+  build / upgrade / sell, invalid action, wave start and clear, win, loss. Mute with M, volume in
+  the top bar; both remembered.
+- Rumble: a short buzz for the player who builds, upgrades or sells; everyone rumbles when an
+  enemy reaches a goal, and hard when the game is lost.

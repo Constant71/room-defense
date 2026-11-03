@@ -54,6 +54,47 @@ export const TOWERS: Record<TowerKind, TowerDef> = {
 };
 export const TOWER_ORDER: TowerKind[] = ['pulse', 'lance', 'frost'];
 
+export const MAX_LEVEL = 3;
+
+/** What an upgrade changes, and what it costs. Index 0 = level 1 -> 2, index 1 = 2 -> 3. */
+export interface Upgrade {
+  cost: number;
+  range?: number;
+  rate?: number;
+  damage?: number;
+  slow?: { factor: number; seconds: number };
+}
+
+export const UPGRADES: Record<TowerKind, [Upgrade, Upgrade]> = {
+  pulse: [
+    { cost: 38, damage: 1.6, range: 0.18 },
+    { cost: 65, damage: 2.4, rate: 2.5, range: 0.2 },
+  ],
+  lance: [
+    { cost: 75, damage: 10, range: 0.33 },
+    { cost: 120, damage: 16, rate: 0.75, range: 0.36 },
+  ],
+  frost: [
+    { cost: 50, damage: 0.4, range: 0.14, slow: { factor: 0.4, seconds: 1.75 } },
+    { cost: 82, damage: 0.6, range: 0.16, slow: { factor: 0.32, seconds: 2 } },
+  ],
+};
+
+/** A tower's stats at a level (1 to MAX_LEVEL). */
+export function towerStats(kind: TowerKind, level: number): TowerDef {
+  let def: TowerDef = { ...TOWERS[kind] };
+  for (let l = 2; l <= Math.min(level, MAX_LEVEL); l++) {
+    const { cost: _cost, ...changes } = UPGRADES[kind][l - 2];
+    def = { ...def, ...changes };
+  }
+  return def;
+}
+
+/** Cost to go from `level` to `level + 1`, or null at the top level. */
+export function upgradeCost(kind: TowerKind, level: number): number | null {
+  return level < MAX_LEVEL ? UPGRADES[kind][level - 1].cost : null;
+}
+
 export interface EnemyDef {
   kind: EnemyKind;
   hp: number;

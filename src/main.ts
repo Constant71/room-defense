@@ -13,6 +13,7 @@ import { el } from './ui/dom';
 import { uiScale } from './ui/uiScale';
 import { RemoteHost } from './remote/host';
 import { Play } from './game/play';
+import { sound } from './game/sound';
 
 type Mode = 'checks' | 'editor' | 'play';
 const MODES: Mode[] = ['checks', 'editor', 'play'];
@@ -78,6 +79,28 @@ async function main(): Promise<void> {
   const smaller = el('button', { title: 'Smaller text (-)' }, 'A−');
   const bigger = el('button', { title: 'Bigger text (=)' }, 'A+');
   const sizeLabel = el('span', { class: 'value' });
+  const soundButton = el('button', { title: 'Sound on/off (M)' });
+  const volume = el('input', {
+    type: 'range',
+    min: '0',
+    max: '100',
+    step: '10',
+    'aria-label': 'Volume',
+    class: 'volume',
+  });
+  soundButton.addEventListener('click', () => {
+    sound.toggleMute();
+    soundButton.blur();
+  });
+  volume.addEventListener('input', () => sound.setVolume(Number(volume.value) / 100));
+  volume.addEventListener('change', () => volume.blur());
+  const showSound = (): void => {
+    soundButton.textContent = sound.muted ? 'Sound off' : 'Sound on';
+    soundButton.classList.toggle('active', !sound.muted);
+    volume.value = String(Math.round(sound.volume * 100));
+  };
+  sound.onChange(showSound);
+  showSound();
   smaller.addEventListener('click', () => uiScale.step(-1));
   bigger.addEventListener('click', () => uiScale.step(1));
   byId('mode-bar').append(
@@ -89,6 +112,8 @@ async function main(): Promise<void> {
     smaller,
     sizeLabel,
     bigger,
+    soundButton,
+    volume,
   );
   const applyScale = (v: number): void => {
     sizeLabel.textContent = `${Math.round(v * 100)}%`;
@@ -186,6 +211,7 @@ async function main(): Promise<void> {
   km.onPress('F2', () => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]));
   km.onPress('KeyH', () => (hud.hidden = !hud.hidden));
   km.onPress('KeyP', () => hud.classList.toggle('left'));
+  km.onPress('KeyM', () => sound.toggleMute());
   for (const code of ['Minus', 'NumpadSubtract']) km.onPress(code, () => uiScale.step(-1));
   for (const code of ['Equal', 'NumpadAdd']) km.onPress(code, () => uiScale.step(1));
 
